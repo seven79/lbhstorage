@@ -6,11 +6,7 @@ def userRequest(name, sock):
     while True:
         userInput = raw_input("storage connected:\n Request: -> ")
         words = userInput.split(" ") 
-        if words[0] != 'upload':
-            sock.send(userInput)
-            userResponse = sock.recv(1024)
-            print userResponse
-        else:
+        if words[0] == 'upload':
             path = words[1]
             filename = words[2] 
             userInput += (' ' + str(os.path.getsize(filename)))
@@ -28,6 +24,33 @@ def userRequest(name, sock):
                     while bytesToSend != "":
                         bytesToSend = f.read(1024)
                         sock.send(bytesToSend)
+        elif words[0] == 'download':
+            filename = words[2] 
+            sock.send(userInput)
+            res = sock.recv(1024)
+            ans = res.split(" ")
+            if ans[0] == 'EXISTS':
+                print 'file exists'
+                size = long(ans[1])
+                f = open(filename, 'wb')
+                data = sock.recv(1024)
+                totalRecv = len(data)
+                f.write(data)
+                while totalRecv < size:
+                    print str(totalRecv) + '/' + str(size)
+                    data = sock.recv(1024)
+                    totalRecv += len(data)
+                    f.write(data)
+                    print "{0:.2f}".format((totalRecv/float(size))*100) + "% Done"
+                f.close()
+                print "Download Complete!"
+            else:
+                print 'No such file'
+                        
+        else:
+            sock.send(userInput)
+            userResponse = sock.recv(1024)
+            print userResponse
     sock.close()
 
 def Main():

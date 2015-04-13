@@ -29,3 +29,13 @@ def uploadFile(path, filename, sock, size):
     f.close()
     print "Upload Complete!"
         
+def downloadFile(path, filename, sock):
+    sock.send('EXISTS ' + str(os.path.getsize(os.path.join(path, filename))))
+    print 'EXISTS ' + str(os.path.getsize(os.path.join(path, filename)))
+    with open(os.path.join(path, filename), 'rb') as f:
+        bytesToSend = f.read(1024)
+        sock.send(bytesToSend)
+        while bytesToSend != "":
+            bytesToSend = f.read(1024)
+            sock.send(bytesToSend)
+            

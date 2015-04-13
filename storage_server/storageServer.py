@@ -34,7 +34,12 @@ def handler(name, sock, section):
                 else:
                     sock.send('Path invalid')
             elif command == 'download':
-                print 'download'
+                path = words[1]
+                filename = words[2]
+                if os.path.isfile(os.path.join(path,filename)):
+                    fileManage.downloadFile(path, filename, sock)
+                else:
+                    sock.send('File not exists')
             elif command == 'rm':
                 index += 1
             elif command == 'mkdir':

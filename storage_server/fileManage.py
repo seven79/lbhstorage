@@ -38,4 +38,12 @@ def downloadFile(path, filename, sock):
         while bytesToSend != "":
             bytesToSend = f.read(1024)
             sock.send(bytesToSend)
+
             
+def removeFile(path, filename, sock):
+    os.remove(os.path.join(path, filename))
+    sock.send('File %s Removed' % filename)
+    
+def toTmpFile(path, filename, sock, index):
+    os.rename(os.path.join(path, filename), os.path.join(path, (filename + '##' + str(index + 1) + '##tmp')))
+    sock.send('File %s Removed (saved as tmp)' % filename)

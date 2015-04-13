@@ -8,10 +8,36 @@ import fileManage
 MT_status = 0
 RR_status = 0
 timeout = 1 #1 second
+index = 0
+
+class log:
+    def __init__(self, filename):
+        self.filename = filename
+        with open(self.filename) as f:
+            self.filelines = len(f.readlines())
+
+    def append(self, message):
+        with open(self.filename,'a') as f:
+            f.write(message+'\n')
+        self.filelines += 1
+    
+    def read_line(self, line):
+        if line > filelines:
+            print('no such line.')
+            return ''
+        log = ''
+        with open(self.filename) as f:
+           log = f.readlines()[line-1]
+        log = log.strip('\n')
+        return log
+        
+    def get_latest_index(self):
+        return self.filelines
 
 def handler(name, sock, section):
     sock.setblocking(0)
     index = 0
+    mylog = log('node1.log')#TODO create node1.log first in Main()
     while True:
         ready = select.select([sock], [], [], timeout)
         if ready[0]:
@@ -30,7 +56,8 @@ def handler(name, sock, section):
                 size = long(words[3])
                 if os.path.isdir(path):#TODO, parse to local
                     fileManage.uploadFile(path, filename, sock, size)
-                    index += 1
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
+                    #index += 1
                 else:
                     sock.send('Path invalid')
             elif command == 'download':
@@ -41,7 +68,23 @@ def handler(name, sock, section):
                 else:
                     sock.send('File not exists')
             elif command == 'rm':
-                index += 1
+                path = words[1]
+                filename = words[2]
+                if os.path.exists(os.path.join(path,filename)):
+                    fileManage.removeFile(path, filename, sock)
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
+                    #index += 1
+                else:
+                    sock.send('File not exists')
+            elif command == 'rmtmp':
+                path = words[1]
+                filename = words[2]
+                if os.path.exists(os.path.join(path,filename)):
+                    fileManage.toTmpFile(path, filename, sock, index)
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
+                    #index += 1
+                else:
+                    sock.send('File not exists')
             elif command == 'mkdir':
                 index += 1
             elif command == 'rmdir':

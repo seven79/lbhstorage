@@ -46,7 +46,14 @@ def userRequest(name, sock):
                 print "Download Complete!"
             else:
                 print 'No such file'
-                        
+        elif words[0] == 'rm':
+            sock.send(userInput)
+            res = sock.recv(1024)
+            print res
+        elif words[0] == 'rmtmp':
+            sock.send(userInput)
+            res = sock.recv(1024)
+            print res
         else:
             sock.send(userInput)
             userResponse = sock.recv(1024)

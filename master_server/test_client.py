@@ -1,5 +1,7 @@
 import socket
 import threading
+import os
+import string
 
 
 class client:
@@ -15,13 +17,15 @@ class client:
         
         while True:
             request = raw_input('Please input request:\n')
-            words = response.split()
+            words = request.split()
             if words[0] == 'upload':
                 path = words[1]
-                filename = words[2] 
-                userInput += (' ' + str(os.path.getsize(filename)))
-                print userInput
-                cc.send(userInput)
+                filename = words[2]
+                real_file = filename.split('/')
+                real_file = real_file[len(real_file)-1]
+                request = (words[0]+' '+words[1]+' '+real_file+' ' + str(os.path.getsize(filename)))
+                print request
+                cc.send(request)
                 response = cc.recv(1024)
                 if response == 'STOP':
                     print('Oops,Storage service is not available now.')                   

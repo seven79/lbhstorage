@@ -50,11 +50,11 @@ class threadcomm:
     def write_message(self,message,node_list):
         if isinstance(node_list,list):
             for i in node_list:
-                config.maintain_message[self.t_type][i] = message
+                config.message[self.t_type][i] = message
                 config.message_ready[self.t_type][i].set()
             
         else:
-            config.maintain_message[self.t_type][node_list] = message
+            config.message[self.t_type][node_list] = message
             config.message_ready[self.t_type][node_list].set()            
             
     def wait_response(self,node_list):
@@ -99,7 +99,7 @@ class server:
                 client_id = string.atoi(client.recv(1024))
                 #refresh the state table
                 config.STATE_TABLE[self.server_type][client_id] = True
-                print(self.server_type+' '+client_id+' connected.')
+                print(self.server_type+' '+str(client_id)+' connected.')
                 handler = Handler(self.server_type, client_id)
             elif self.server_type == 'client':
                 handler = Handler(self.server_type)
@@ -133,7 +133,7 @@ class Handler(threading.Thread):
     def ms_handler(self):
         tc = threadcomm(self.t_name)
         while True:
-            tc.wait_message()
+            tc.wait_message(self.client_id)
             #parse the message send by maintain manage
             command = tc.get_message(self.client_id).split() 
             #switch to certain handler 
@@ -175,13 +175,13 @@ class Handler(threading.Thread):
             command = request.split()
             #new_index = self.log.get_latest_index()+1
             if command[0] == 'upload':
-                receive_file(command,connect)
+                receive_file(command,self.connect)
                 upload_file(valid_list,command[1],command[2],'service_upload/', 'service')
                 os.remove('service_upload/'+command[2])
 
             elif command[0] == 'download':
                 download_file(valid_list, command[1], command[2], str(-1), 'service')
-                send_file(command,'service_download/',connect)
+                send_file(command,'service_download/',self.connect)
                 os.remove('service_download/'+command[2])
             
     
@@ -201,16 +201,22 @@ class manage(threading.Thread):
             node_list=[] 
             #check if connected clients >= 2, if <2 stuck in while loop and wait
             while len(node_list) < 2:
-                print('maintain server manager: not enough connected nodes.')
                 time.sleep(5)
                 del node_list[:]
                 for i in range(3):
                     if config.STATE_TABLE['maintain'][i] == True:
                         node_list.append(i)
+                if len(node_list) >= 2:
+                    break
+                print('maintain server manager: not enough connected nodes.')
+                    
             print('maintain server manager: enough connected nodes.')
             #if connected clients >=2, start service and recovery nodes
             #check which node need to recovery by compare latest index 
-            latest_index = query_index(node_list)
+            latest_index = query_index(node_list,'maintain')
+            print('latest_index: '+str(latest_index))
+            my_index = self.log.get_latest_index()
+            print('my_index is '+str(my_index))
             for i in node_list:
                 if latest_index[i] == self.log.get_latest_index():
                     valid_list.append(i)
@@ -250,19 +256,19 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
         filesize = os.path.getsize(src_dir)
 
         tc = threadcomm(server_type)
-        tc.write_message('upload '+dest_dir+' '+filename+' '+filesize, node_list)
+        tc.write_message('upload '+dest_dir+' '+filename+' '+str(filesize), node_list)
         
         tc.wait_response(node_list)
         #check if at least 2 nodes reply commit
         count = 0
         for i in node_list:
-           if config.action_result[i] == True:
+           if config.action_result[server_type][i] == True:
                count += 1
         if count >= 2:
-            tc.write_message('ack')
+            tc.write_message('ack',node_list)
             tc.wait_response(node_list)
         else:
-            tc.write_message('fail')
+            tc.write_message('fail',node_list)
             tc.wait_response(node_list)
             
         
@@ -288,7 +294,7 @@ def switcher(cmd,connect,client_id,t_name):
 
 def handle_index(cmd,connect,client_id,server_type):
     connect.send(cmd[0])
-    config.latest_index[client_id] = connect.recv(1024)
+    config.latest_index[client_id] = string.atoi(connect.recv(1024))
     config.action_result[server_type][client_id] = True
     config.response_ready[server_type][client_id].set()
 
@@ -360,13 +366,13 @@ def handle_fail(connect,client_id,server_type):
 
 def receive_file(cmd,connect):
     size = long(cmd[3])
-    with open('service_upload/'+filename, 'wb') as f:
+    with open('service_upload/'+cmd[2], 'wb') as f:
         data = connect.recv(1024)
         totalRecv = len(data)
         f.write(data)
         while totalRecv < size: 
             print str(totalRecv) + '/' + str(size)
-            data = sock.recv(1024)
+            data = connect.recv(1024)
             totalRecv += len(data)
             f.write(data)
         print "Receive Complete!"

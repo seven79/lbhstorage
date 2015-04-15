@@ -299,9 +299,13 @@ def handle_index(cmd,connect,client_id,server_type):
     config.response_ready[server_type][client_id].set()
 
 def handle_upload(cmd,connect,client_id,server_type):
+    
     connect.send(cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]) #upload dest_dir file_name file_size
+    msg = cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]
+    print(msg)
     ack = connect.recv(1024)
     if ack == 'Path invalid':
+        print('Upload: Path invalid.')
         config.action_result[server_type][client_id] = False
         config.response_ready[server_type][client_id].set()
         return
@@ -313,6 +317,7 @@ def handle_upload(cmd,connect,client_id,server_type):
             while bytesToSend != "":
                 bytesToSend = f.read(1024)
                 connect.send(bytesToSend)
+        print('Upload Completed.')
         #recive commit from client
         commit = connect.recv(1024)
         if commit == 'commit':
@@ -321,6 +326,7 @@ def handle_upload(cmd,connect,client_id,server_type):
                 connect.send('ACK')
             config.action_result[server_type][client_id] = True
         else:
+            print('not receive commit')
             config.action_result[server_type][client_id] = False
             
         config.response_ready[server_type][client_id].set()
@@ -353,15 +359,15 @@ def handle_download(cmd,connect,client_id,server_type):
     else:
         print 'No such file'
 
-def handle_ack(connect,client_id,server_type):
+def handle_ack(cmd,connect,client_id,server_type):
     connect.send('ACK')
     config.action_result[server_type][client_id] = True  
-    config.response_ready[server_type][client_id] = True
+    config.response_ready[server_type][client_id].set()
 
-def handle_fail(connect,client_id,server_type):
+def handle_fail(cmd,connect,client_id,server_type):
     connect.send('FAIL')
     config.action_result[server_type][client_id] = True  
-    config.response_ready[server_type][client_id] = True
+    config.response_ready[server_type][client_id].set()
 
 
 def receive_file(cmd,connect):

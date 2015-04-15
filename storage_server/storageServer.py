@@ -60,7 +60,7 @@ def handler(name, sock, section):
     # sock.setblocking(0)
     sock.send(str(nodeID))
     index = 0
-    mylog = log('node1.log')#TODO create node1.log first in Main()
+    mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
     while True:
         ready = select.select([sock], [], [], timeout)
         if ready[0]:
@@ -75,6 +75,7 @@ def handler(name, sock, section):
                 sock.send('Receive ls')                
             elif command == 'upload':
                 path = words[1]
+                path = ('node%s/' % nodeID) + path
                 rPath = parsePath(path, section)
                 filename = words[2]
                 size = long(words[3])
@@ -92,6 +93,7 @@ def handler(name, sock, section):
                     sock.send('Path invalid')
             elif command == 'download':
                 path = words[1]
+                path = ('node%s/' % nodeID) + path
                 filename = words[2]
                 rPath = parsePath(os.path.join(path,filename), section)
                 if rPath != 'Path invalid':#TODO, parse to local

@@ -28,11 +28,17 @@ def uploadFile(path, filename, sock, size):
         print "{0:.2f}".format((totalRecv/float(size))*100) + "% Done"
     f.close()
     print "Upload Complete!"
-        
-def downloadFile(path, filename, sock):
-    sock.send('EXISTS ' + str(os.path.getsize(os.path.join(path, filename))))
-    print 'EXISTS ' + str(os.path.getsize(os.path.join(path, filename)))
-    with open(os.path.join(path, filename), 'rb') as f:
+    sock.send("commit")
+    rev = sock.recv(1024)
+    if rev == 'ACK':
+        return 'success'
+    elif rev == 'Fail':
+        os.remove(os.path.join(path ,filename))
+        return 'fail'
+def downloadFile(path_filename, sock):
+    sock.send('EXISTS ' + str(os.path.getsize(path_filename)))
+    print 'EXISTS ' + str(os.path.getsize(path_filename))
+    with open(path_filename, 'rb') as f:
         bytesToSend = f.read(1024)
         sock.send(bytesToSend)
         while bytesToSend != "":
@@ -45,5 +51,10 @@ def removeFile(path, filename, sock):
     sock.send('File %s Removed' % filename)
     
 def toTmpFile(path, filename, sock, index):
-    os.rename(os.path.join(path, filename), os.path.join(path, (filename + '##' + str(index + 1) + '##tmp')))
+    os.rename(os.path.join(path, filename), os.path.join(path, (filename + '##' + index + '##tmp')))
     sock.send('File %s Removed (saved as tmp)' % filename)
+
+def mkdir(path, dirName, sock):
+    os.mkdir(os.path.join(path, dirName))
+    sock.send('Dir %s Created' % dirName)
+#def rmdir(path, dirName, sock):

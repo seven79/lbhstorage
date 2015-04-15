@@ -3,6 +3,8 @@ import threading
 import os
 
 def userRequest(name, sock):
+    nodeID = sock.recv(1024)
+    print nodeID
     while True:
         userInput = raw_input("storage connected:\n Request: -> ")
         words = userInput.split(" ") 
@@ -24,6 +26,10 @@ def userRequest(name, sock):
                     while bytesToSend != "":
                         bytesToSend = f.read(1024)
                         sock.send(bytesToSend)
+                status = sock.recv(1024)
+                if status == 'commit':
+                    sock.send('ACK')
+                
         elif words[0] == 'download':
             filename = words[2] 
             sock.send(userInput)
@@ -46,11 +52,7 @@ def userRequest(name, sock):
                 print "Download Complete!"
             else:
                 print 'No such file'
-        elif words[0] == 'rm':
-            sock.send(userInput)
-            res = sock.recv(1024)
-            print res
-        elif words[0] == 'rmtmp':
+        elif words[0] == 'rm' or words[0] == 'rmtmp' or words[0] == 'mkdir' or words[0] == 'rmdir':
             sock.send(userInput)
             res = sock.recv(1024)
             print res

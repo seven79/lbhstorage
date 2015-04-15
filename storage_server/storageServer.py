@@ -172,12 +172,24 @@ def Maintain(name, sock):
 
 def Main():
     #connect to Master Server
-    host = raw_input("Master Host: -> ")
-    port_MT = int(raw_input("Master Port (MT): -> "))
-    port_RR = int(raw_input("Master Port (RR): -> "))
+    default_option = raw_input("use default (127.0.0.1 8000 8001):(y/n) -> ")
+    host = ''
+    port_MT = 0
+    port_RR = 0
+    if default_option == 'n':
+        host = raw_input("Master Host: -> ")
+        port_MT = int(raw_input("Master Port (MT): -> "))
+        port_RR = int(raw_input("Master Port (RR): -> "))
+    elif default_option == 'y':
+        host = '127.0.0.1'
+        port_MT = 8001
+        port_RR = 8000
+    else:
+        print 'wrong choice'
+        exit()
+    print "host: " + host + " MT:" + str(port_MT) + " RR:" + str(port_RR)
     global nodeID
     nodeID = int(raw_input("node ID: -> "))
-
     while True:
         command = raw_input("Command: (type:\"on\" to connect; \"off\" to block) -> ")        
         if command == 'on' and MT_status == 0 and RR_status == 0:

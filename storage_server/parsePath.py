@@ -13,15 +13,18 @@ def parsePath(path, section):
         currPath = '.'
         dirs = path.split('/')
         for directory in dirs:
-            splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
-            print 'directory for now: %s' % directory
-            print 'dirs of %s' % currPath
-            print splitDir
-            pathToAdd = filter(lambda x: os.path.exists(os.path.join(currPath, x[0])) and (len(x[1]) == 1 or len(x[1]) == 2) and x[1][0] == directory, splitDir)
-            if len(pathToAdd) == 0:
-                return 'Path invalid'
+            if directory == '.':
+                continue
             else:
-                currPath += ('/' + pathToAdd[0][0])
+                splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
+                print 'directory for now: %s' % directory
+                print 'dirs of %s' % currPath
+                print splitDir
+                pathToAdd = filter(lambda x: os.path.exists(os.path.join(currPath, x[0])) and (len(x[1]) == 1 or len(x[1]) == 2) and x[1][0] == directory, splitDir)
+                if len(pathToAdd) == 0:
+                    return 'Path invalid'
+                else:
+                    currPath += ('/' + pathToAdd[0][0])
         return currPath
     
     elif section == 'M':

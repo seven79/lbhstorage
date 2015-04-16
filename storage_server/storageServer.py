@@ -16,15 +16,13 @@ nodeID = -1
 class log:
     def __init__(self, filename):
         self.filename = filename
-        with open(self.filename) as f:
-            self.filelines = len(f.readlines())
 
     def append(self, message):
         with open(self.filename,'a') as f:
             f.write(message+'\n')
     
     def read_line(self, line):
-        if line > filelines:
+        if line > self.get_latest_index():
             print('no such line.')
             return ''
         log = ''
@@ -35,8 +33,8 @@ class log:
         
     def get_latest_index(self):
         with open(self.filename) as f:
-            self.filelines = len(f.readlines())
-        return self.filelines
+            lines = len(f.readlines())
+        return lines
     
     def delete_last_line(self):
         curr = []
@@ -50,6 +48,11 @@ class log:
         self.delete_last_line()
         self.append(message)
 
+    def initLog(self):
+        lastLine = self.read_line(self.get_latest_index())
+        words = lastLine.split(" ")
+        if words[len(words) - 1] == 'uncommitted':
+            self.delete_last_line()
 
 
 
@@ -78,6 +81,7 @@ def handler(name, sock, section):
     sock.send(str(nodeID))
     index = 0
     mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
+    mylog.initLog()
     while True:
         ready = select.select([sock], [], [], timeout)
         if ready[0]:

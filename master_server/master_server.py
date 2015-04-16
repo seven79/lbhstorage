@@ -4,20 +4,19 @@ import os
 import string
 import config
 import time
+import errno
 
 
 class log:
     def __init__(self, filename):
         self.filename = filename
-        with open(self.filename) as f:
-            self.filelines = len(f.readlines())
 
     def append(self, message):
         with open(self.filename,'a') as f:
             f.write(message+'\n')
     
     def read_line(self, line):
-        if line > filelines:
+        if line > self.get_latest_index():
             print('no such line.')
             return ''
         log = ''
@@ -28,8 +27,8 @@ class log:
         
     def get_latest_index(self):
         with open(self.filename) as f:
-            self.filelines = len(f.readlines())
-        return self.filelines
+            lines = len(f.readlines())
+        return lines
     
     def delete_last_line(self):
         curr = []
@@ -42,7 +41,14 @@ class log:
     def modify_last_line(self, message):
         self.delete_last_line()
         self.append(message)
-        
+
+    def initLog(self):
+        lines = self.get_latest_index()
+        if lines != 0:
+            lastLine = self.read_line(lines)
+            words = lastLine.split(" ")
+            if words[len(words) - 1] == 'uncommitted':
+                self.delete_last_line()        
 
 class threadcomm:
     def __init__(self, thread_type):
@@ -97,7 +103,11 @@ class server:
             (client, address) = ss.accept()  
             if self.server_type == 'maintain' or self.server_type == 'service':
                 #receive identity message from client
-                client_id = string.atoi(client.recv(1024))
+                client_id = recv_msg(client,-1,'master')
+                if client_id == '':
+                    continue
+                else:
+                    client_id = string.atoi(client_id)
                 #refresh the state table
                 config.STATE_TABLE[self.server_type][client_id] = True
                 print(self.server_type+' '+str(client_id)+' connected.')
@@ -139,12 +149,17 @@ class Handler(threading.Thread):
             command = tc.get_message(self.client_id).split() 
             #switch to certain handler 
             switcher(command, self.connect, self.client_id, self.t_name)
+            #if current node disconnect, quit the handler
+            if config.STATE_TABLE[self.t_name][self.client_id] == False:
+                break
 
     #handler for client server
     def client_handler(self):
         while True:
             #receive request from client
-            request = self.connect.recv(1024)
+            request = recv_msg(connect,-1,'master')
+            if request == '':
+                continue
             #check if now there are at least 2 node connected to service server
             node_list = []
             valid_list = []
@@ -201,12 +216,14 @@ class manage(threading.Thread):
             invalid_list=[]
             node_list=[] 
             #check if connected clients >= 2, if <2 stuck in while loop and wait
+            print(config.STATE_TABLE)
             while len(node_list) < 2:
                 time.sleep(5)
                 del node_list[:]
                 for i in range(3):
                     if config.STATE_TABLE['maintain'][i] == True:
                         node_list.append(i)
+                print('node_list: '+str(node_list))
                 if len(node_list) >= 2:
                     break
                 print('maintain server manager: not enough connected nodes.')
@@ -260,19 +277,18 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
         tc.write_message('upload '+dest_dir+' '+filename+' '+str(filesize), node_list)
         
         tc.wait_response(node_list)
-        #check if at least 2 nodes reply commit
-        count = 0
-        for i in node_list:
-           if config.action_result[server_type][i] == True:
-               count += 1
-        if count >= 2:
-            tc.write_message('ack',node_list)
-            tc.wait_response(node_list)
-        else:
-            tc.write_message('fail',node_list)
-            tc.wait_response(node_list)
-            
         
+        #check if at least 2 nodes reply commit
+        new_node_list = []
+        for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+
+        if server_type == 'service':
+            two_phase_commit(tc, new_node_list, server_type)
+        #write log
+        retrive_log(tc,new_node_list)
+                
     else:
         print('upload '+src_dir+' error: no such file.')
   
@@ -294,8 +310,16 @@ def switcher(cmd,connect,client_id,t_name):
 
 
 def handle_index(cmd,connect,client_id,server_type):
-    connect.send(cmd[0])
-    config.latest_index[client_id] = string.atoi(connect.recv(1024))
+     
+    if send_msg(cmd[0],connect,client_id,server_type) == False:
+        return
+
+    latest_index = recv_msg(connect, client_id, server_type)
+    if latest_index == '':
+        return
+    else:
+        config.latest_index[client_id] = string.atoi(latest_index)
+
     config.action_result[server_type][client_id] = True
     config.response_ready[server_type][client_id].set()
 
@@ -310,8 +334,15 @@ def handle_upload(cmd,connect,client_id,server_type):
     msg = cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]  
     print(msg)
 
-    connect.send(msg) #upload dest_dir file_name file_size  
-    ack = connect.recv(1024)
+    #upload dest_dir file_name file_size  
+    if send_msg(msg,connect,client_id,server_type) == False:
+        return
+    
+
+    ack = recv_msg(connect, client_id, server_type)
+    if ack == '':
+        return
+    
     if ack == 'Path invalid':
         print('Upload: Path invalid.')
         config.action_result[server_type][client_id] = False
@@ -321,17 +352,26 @@ def handle_upload(cmd,connect,client_id,server_type):
     elif ack == 'OK':
         with open(src_dir+cmd[2],'rb') as f: #src_dic+filename
             bytesToSend = f.read(1024)
-            connect.send(bytesToSend)
+
+            
+            if send_msg(bytesToSend,connect,client_id,server_type) == False:
+                return
+
             while bytesToSend != "":
                 bytesToSend = f.read(1024)
-                connect.send(bytesToSend)
+                if send_msg(bytesToSend,connect,client_id,server_type) == False:
+                    return
         print('Upload Completed.')
         #recive commit from client
-        commit = connect.recv(1024)
+        commit = recv_msg(connect,client_id, server_type)
+        if commit == '':
+            return
+
         if commit == 'commit':
             if server_type == 'maintain':
                 #if it's maintain server, no need to gather 2/3 commits
-                connect.send('ACK')
+                if send_msg('ACK',connect,client_id,server_type) == False:
+                    return
             config.action_result[server_type][client_id] = True
         else:
             print('not receive commit')
@@ -341,10 +381,18 @@ def handle_upload(cmd,connect,client_id,server_type):
 
 def handle_download(cmd,connect,client_id,server_type):
     if server_type == 'maintain':
-        connect.send(cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]) #download src_dir file_name index
+        #download src_dir file_name index
+        msg = cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]
+        if send_msg(msg,connect,client_id,server_type) == False:
+            return
     elif server_type == 'service':
-        connect.send(cmd[0]+' '+cmd[1]+' '+cmd[2]) #download src_dir file_name
-    res = connect.recv(1024)
+        #download src_dir file_name
+        msg = cmd[0]+' '+cmd[1]+' '+cmd[2]
+        if send_msg(msg,connect,client_id,server_type) == False:
+            return
+    res = recv_msg(connect, client_id, server_type)
+    if res == '':
+        return
     res = res.split()
     if res[0] == 'EXISTS':
         print 'file exists'
@@ -355,12 +403,17 @@ def handle_download(cmd,connect,client_id,server_type):
             path = 'service_download/'
             
         with open(path+filename, 'wb') as f:
-            data = connect.recv(1024)
+            data = recv_msg(connect, client_id, server_type)
+            if data == '':
+                return
+                
             totalRecv = len(data)
             f.write(data)
             while totalRecv < size: 
                 print str(totalRecv) + '/' + str(size)
-                data = sock.recv(1024)
+                data = recv_msg(connect,client_id, server_type)
+                if data == '':
+                    return
                 totalRecv += len(data)
                 f.write(data)
             print "Download Complete!"
@@ -368,12 +421,14 @@ def handle_download(cmd,connect,client_id,server_type):
         print 'No such file'
 
 def handle_ack(cmd,connect,client_id,server_type):
-    connect.send('ACK')
+    if send_msg('ACK',connect, client_id, server_type) == False:
+        return
     config.action_result[server_type][client_id] = True  
     config.response_ready[server_type][client_id].set()
 
 def handle_fail(cmd,connect,client_id,server_type):
-    connect.send('FAIL')
+    if send_msg('FAIL',connect, client_id, server_type) == False:
+        return
     config.action_result[server_type][client_id] = True  
     config.response_ready[server_type][client_id].set()
 
@@ -381,12 +436,17 @@ def handle_fail(cmd,connect,client_id,server_type):
 def receive_file(cmd,connect):
     size = long(cmd[3])
     with open('service_upload/'+cmd[2], 'wb') as f:
-        data = connect.recv(1024)
+        data = recv_msg(connect, -1, 'master')
+        if data == '':
+            return
+
         totalRecv = len(data)
         f.write(data)
         while totalRecv < size: 
             print str(totalRecv) + '/' + str(size)
-            data = connect.recv(1024)
+            data = recv_msg(connect, -1, 'master')
+            if data == '':
+                return
             totalRecv += len(data)
             f.write(data)
         print "Receive Complete!"
@@ -396,17 +456,95 @@ def send_file(cmd, src_dir, connect):
     if os.path.isfile(src_dir):
         filesize = os.path.getsize(src_dir)
     #send filesize to client
-    connect.send(str(filesize))
+    if send_msg(str(filesize),connect,-1,'client') == False:
+        return
 
     with open(src_dir,'rb') as f:
         bytesToSend = f.ready(1024)
-        connect.send(bytesToSend)
+        if send_msg(bytesToSend,connect,-1,'client') == False:
+            return
         while bytesToSend != "":
             bytesToSend = f.read(1024)
-            connect.send(bytesToSend)
+            if send_msg(bytesToSend,connect,-1,'client') == False:
+                return
 
     print('Send Complete!')
 
+def send_msg(message, connect, client_id, server_type):
+    try:
+        connect.send(message)        
+    except socket.error, e:
+        if isinstance(e.args, tuple):
+            print "errno is %d" % e[0]
+            if e[0] == errno.EPIPE:
+               # remote peer disconnected
+                print("pipe broken")
+                print("Detected "+"node "+str(client_id)+" disconnect from "+server_type)
+            else:
+               # determine and handle different error
+                print "Detect other error"
+        else:
+            print("socket error ", e)
+            print "Detected "+"node "+str(client_id)+" disconnect from "+server_type
+        connect.close()
+        if server_type == 'maintain' or server_type == 'service':
+            config.STATE_TABLE[server_type][client_id] = False
+            config.action_result[server_type][client_id] = False
+            config.response_ready[server_type][client_id].set()
+        return False
+    return True
+    
+def recv_msg(connect, client_id, server_type):
+    try:
+        msg = connect.recv(1024)
+    except socket.error, e:
+        print "Error receiving data: %s" % e
+        if server_type == 'maintain' or server_type == 'service':
+            config.STATE_TABLE[server_type][client_id] = False
+            config.action_result[server_type][client_id] = False
+            config.response_ready[server_type][client_id].set()
+        print('Receive message error: '+'node '+str(client_id)+' may disconnect from '+server_type)
+        msg = ''
+        return msg
+
+    if not len(msg):
+        print('Receive message error: '+'node '+str(client_id)+' may disconnect from '+server_type)
+        if server_type == 'maintain' or server_type == 'service':
+            config.STATE_TABLE[server_type][client_id] = False
+            config.action_result[server_type][client_id] = False
+            config.response_ready[server_type][client_id].set()
+
+    return msg
+
+def two_phase_commit(tc, node_list):        
+
+    if len(node_list) >= 2:
+        tc.write_message('ack',node_list)
+        tc.wait_response(node_list)
+    else:
+        tc.write_message('fail', node_list)
+        tc.wait_response(node_list)
+
+#retrive log from nodes
+def retrive_log(tc, node_list):
+    tc.write_message('log',node_list)
+    tc.wait_response(node_list)
+    #check if returned logs are same
+    temp = node_list[0]
+    same = True
+    for i in node_list[1:]:
+        if temp != config.latest_log[i]:
+            same = False
+            break;
+        temp = config.lastest_log[i]
+
+    if same == True:
+        mylog = log('master_server.log')
+        mylog.append(config.latest_log[node_list[0]])
+    else:
+        print('received logs are different.')
+            
+    
 
 def main():
     maintain_server_manager = manage('maintain')

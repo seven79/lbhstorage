@@ -34,7 +34,7 @@ action_result = {'maintain':[False, False, False],
               }
 latest_index = [-1, -1, -1]
 
-
+latest_log =['','','']
 
 def test():
     t = threading.Thread(target = t1)

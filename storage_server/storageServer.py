@@ -114,6 +114,7 @@ def handler(name, sock, section):
                     if status == 'success':
                         print 'upload success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
+                        sock.send(mylog.read_line(mylog.get_latest_index()))
                     #TODO: commit log
                     elif status == 'fail':
                         mylog.delete_last_line()
@@ -131,17 +132,13 @@ def handler(name, sock, section):
                 else:
                     sock.send('File not exists')
             elif command == 'rm':
-                oper = words[3]
                 path = words[1]
+                path = ('node%s/' % nodeID) + path
                 filename = words[2]
-                if os.path.exists(os.path.join(path,filename)):
-                    if oper == 'P':
-                        fileManage.removeFile(path, filename, sock)
-                        mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
-                        #index += 1
-                    elif oper == 'T':
-                        fileManage.toTmpFile(path, filename, sock, str(mylog.get_latest_index() + 1))
-                        mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
+                rPath = parsePath(os.path.join(path,filename), section)
+                if rPath != 'Path invalid':
+                    fileManage.removeFile(path, filename, sock)
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
                 else:
                     sock.send('File not exists')
             elif command == 'rmtmp':

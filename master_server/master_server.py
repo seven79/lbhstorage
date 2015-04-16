@@ -37,6 +37,7 @@ class log:
             curr = lines[:-1]
         with open(self.filename,'w') as f:
             f.writelines(curr)
+        self.filelines -= 1
     
     def modify_last_line(self, message):
         self.delete_last_line()
@@ -299,10 +300,17 @@ def handle_index(cmd,connect,client_id,server_type):
     config.response_ready[server_type][client_id].set()
 
 def handle_upload(cmd,connect,client_id,server_type):
-    
-    connect.send(cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]) #upload dest_dir file_name file_size
-    msg = cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]
+  
+  
+    if server_type == 'service':
+        src_dir = 'service_upload/'
+    elif server_type == 'maintain':
+        src_dir = 'maintain_upload/'
+
+    msg = cmd[0]+' '+cmd[1]+' '+cmd[2]+' '+cmd[3]  
     print(msg)
+
+    connect.send(msg) #upload dest_dir file_name file_size  
     ack = connect.recv(1024)
     if ack == 'Path invalid':
         print('Upload: Path invalid.')
@@ -311,7 +319,7 @@ def handle_upload(cmd,connect,client_id,server_type):
         return
 
     elif ack == 'OK':
-        with open(cmd[4],'rb') as f: #cmd[4] is src_dir
+        with open(src_dir+cmd[2],'rb') as f: #src_dic+filename
             bytesToSend = f.read(1024)
             connect.send(bytesToSend)
             while bytesToSend != "":

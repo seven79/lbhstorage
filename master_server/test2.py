@@ -31,6 +31,7 @@ class log:
             curr = lines[:-1]
         with open(self.filename,'w') as f:
             f.writelines(curr)
+        self.filelines -= 1
     
     def modify_last_line(self, message):
         self.delete_last_line()

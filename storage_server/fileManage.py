@@ -2,16 +2,18 @@ import os.path
 import socket
 
 def rtnFile(path, sock):
-    list = os.listdir(path)
-    buffer = ''
-    for file in list:
-        filepath = os.path.join(path, file)
-        if file[0] != '.':
+    listName = os.listdir(path)
+    sendBuffer = ''
+    for filename in listName:
+        filepath = os.path.join(path, filename)
+        tmp = filename.split('##')
+        sFilename = tmp[0]
+        if sFilename != '.':
             if os.path.isdir(filepath):
-                buffer += ('/' + file + '\n')
+                sendBuffer += ('/' + sFilename + '\n')
             elif os:
-                buffer += (file + '\n')
-    sock.send(buffer)
+                sendBuffer += (sFilename + '\n')
+    sock.send(sendBuffer)
 
 def uploadFile(path, filename, sock, size):
     print 'path:' + path

@@ -90,8 +90,14 @@ def handler(name, sock, section):
             words = request.split(" ")
             command = words[0]
             if command == 'cd':
-                path = words[1]
+                path = []
+                if len(words) == 1:
+                    path = ('node%s/' % nodeID)
+                else:
+                    path = ('node%s/' % nodeID) + words[1]
+                rPath = parsePath(path, section)
                 fileManage.rtnFile(path, sock)
+
             elif command == 'ls':
                 sock.send('Receive ls')                
             elif command == 'upload':
@@ -174,6 +180,8 @@ def handler(name, sock, section):
                 index += 1
             elif command == 'index':
                 sock.send(str(mylog.get_latest_index()))
+            elif command == 'log':
+                sock.send(mylog.read_line(mylog.get_latest_index()))
 
         else:
             print 'wait for message(%s)' % section

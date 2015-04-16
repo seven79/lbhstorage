@@ -11,6 +11,8 @@ timeout = 1 #1 second
 index = 0
 nodeID = -1
 
+
+
 class log:
     def __init__(self, filename):
         self.filename = filename
@@ -20,7 +22,6 @@ class log:
     def append(self, message):
         with open(self.filename,'a') as f:
             f.write(message+'\n')
-        self.filelines += 1
     
     def read_line(self, line):
         if line > filelines:
@@ -33,7 +34,23 @@ class log:
         return log
         
     def get_latest_index(self):
+        with open(self.filename) as f:
+            self.filelines = len(f.readlines())
         return self.filelines
+    
+    def delete_last_line(self):
+        curr = []
+        with open(self.filename) as f:
+            lines = f.readlines()
+            curr = lines[:-1]
+        with open(self.filename,'w') as f:
+            f.writelines(curr)
+    
+    def modify_last_line(self, message):
+        self.delete_last_line()
+        self.append(message)
+
+
 
 
 
@@ -81,12 +98,14 @@ def handler(name, sock, section):
                 size = long(words[3])
                 if rPath != 'Path invalid':#TODO, parse to local
                     rFilename = filename + '##' + str(mylog.get_latest_index())
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + rPath + ' ' + rFilename + words[3]))
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
                     if status == 'success':
                         print 'upload success'
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
                     #TODO: commit log
                     elif status == 'fail':
+                        mylog.delete_last_line()
                         continue
                     #index += 1
                 else:

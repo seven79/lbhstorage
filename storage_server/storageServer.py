@@ -11,8 +11,6 @@ timeout = 1 #1 second
 index = 0
 nodeID = -1
 
-
-
 class log:
     def __init__(self, filename):
         self.filename = filename
@@ -49,10 +47,13 @@ class log:
         self.append(message)
 
     def initLog(self):
-        lastLine = self.read_line(self.get_latest_index())
-        words = lastLine.split(" ")
-        if words[len(words) - 1] == 'uncommitted':
-            self.delete_last_line()
+        lines = self.get_latest_index()
+        if lines != 0:
+            lastLine = self.read_line(lines)
+            words = lastLine.split(" ")
+            if words[len(words) - 1] == 'uncommitted':
+                self.delete_last_line()        
+
 
 
 

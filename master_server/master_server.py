@@ -15,7 +15,6 @@ class log:
     def append(self, message):
         with open(self.filename,'a') as f:
             f.write(message+'\n')
-        self.filelines += 1
     
     def read_line(self, line):
         if line > filelines:
@@ -28,6 +27,8 @@ class log:
         return log
         
     def get_latest_index(self):
+        with open(self.filename) as f:
+            self.filelines = len(f.readlines())
         return self.filelines
     
     def delete_last_line(self):
@@ -37,7 +38,6 @@ class log:
             curr = lines[:-1]
         with open(self.filename,'w') as f:
             f.writelines(curr)
-        self.filelines -= 1
     
     def modify_last_line(self, message):
         self.delete_last_line()

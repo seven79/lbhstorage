@@ -32,6 +32,9 @@ response_ready = {'maintain':[rm1, rm2, rm3],
 action_result = {'maintain':[False, False, False],
                   'service': [False, False, False],
               }
+error_message = {'maintain':['','',''],
+                 'service':['','',''],
+             }
 latest_index = [-1, -1, -1]
 
 latest_log =['','','']

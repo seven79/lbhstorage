@@ -52,6 +52,12 @@ def checkExist(path, fileToCheck):
     else:
         return False
     
-    
+def checkDir(path):
+    splitDir =[(filename, filename.split('##')) for filename in os.listdir(path)]
+    checkList = filter(lambda x: len(x[1]) == 2, splitDir)
+    if len(checkList) > 0:
+        return True
+    else:
+        return False
 
 

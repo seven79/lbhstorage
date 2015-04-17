@@ -5,6 +5,7 @@ import select
 import fileManage
 from parsePath import parsePath
 from parsePath import checkExist
+from parsePath import checkDir
 MT_status = 0
 RR_status = 0
 timeout = 1 #1 second
@@ -128,6 +129,7 @@ def handler(name, sock, section):
                     #index += 1
                 else:
                     sock.send('Path invalid')
+
             elif command == 'download':
                 path = words[1]
                 path = ('node%s/' % nodeID) + path
@@ -137,6 +139,7 @@ def handler(name, sock, section):
                     fileManage.downloadFile(rPath, sock)
                 else:
                     sock.send('File not exists')
+
             elif command == 'rm':
                 path = words[1]
                 path = ('node%s/' % nodeID) + path
@@ -154,54 +157,51 @@ def handler(name, sock, section):
                         mylog.delete_last_line()
                 else:
                     sock.send('File not exists')
-            elif command == 'mv':
-                srcPath = words[1]
-                srcPath = ('node%s/' % nodeID) + srcPath
-                filename = words[2]
-                desPath = words[3]
-                desPath = ('node%s/' % nodeID) + desPath
-                rsPath = parsePath(os.path.join(srcPath, filename), section)
-                dsPath = parsePath(desPath, section)
-                if rsPath == 'Path invalid':
-                    sock.send('File not exists')
-                if dsPath == 'Path invalid':
-                    sock.send('Destination directory not exists')
-                else:
-                    logrPath = os.path.join(rsPath, '.')[8:]
-                    logdPath = os.path.join(dsPath, '.')[8:]
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' mv ' + logrPath + ' ' + logdPath + ' uncommitted'))
-                    dsPath = filename + '##' + str(mylog.get_latest_index()+1)
-                    status = fileManage.moveFile(rsPath, dsPath, sock)
-                    if status == 'success':
-                        print 'mv success'
-                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' mv ' + logrPath + ' ' + logdPath + ' committed'))
-                        sock.send(mylog.read_line(mylog.get_latest_index()))
-                    elif status == 'fail':
-                        mylog.delete_last_line()
  
             elif command == 'mkdir':
                 path = words[1]
+                path = ('node%s/' % nodeID) + path
+                rPath = parsePath(path, section)
                 dirName = words[2]
-                if os.path.exists(path) and os.path.exists(os.path.join(path, filename)) == False:
-                    fileManage.mkdir(path, dirName, sock)
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
-                elif os.path.exists(os.path.join(path, filename)):
-                    sock.send('dir already exists')
+                if checkExist(rPath, dirName):
+                    sock.send('Directory already exists')
+                    continue
+                if rPath != 'Path invalid':
+                    rdirName = dirName + '##' + str(mylog.get_latest_index() + 1)
+                    logPath = os.path.join(rPath, '.')[8:]
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' mkdir ' + logPath + ' ' + rdirName + ' uncommitted'))
+                    status = fileManage.mkdir(rPath, rdirName, sock)
+                    if status == 'success':
+                        print 'mkdir success'
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' mkdir ' + logPath + ' ' + rdirName + ' committed'))
+                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                    #TODO: commit log
+                    elif status == 'fail':
+                        mylog.delete_last_line()
                 else:
-                    sock.send('path error')
+                    sock.send('Path invalid')
+
+
             elif command == 'rmdir':
                 path = words[1]
-                dirName = words[2]
-                if os.path.exists(path) and os.path.exists(os.path.join(path, filename)) == False:
-                    fileManage.mkdir(path, dirName, sock)
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
-                elif os.path.exists(os.path.join(path, filename)):
-                    sock.send('dir already exists')
+                path = ('node%s/' % nodeID) + path
+                rPath = parsePath(path, section)
+                if checkDir(rPath):
+                    sock.send('Directory is not empty')
+                    continue
+                if rPath != 'Path invalid':
+                    logPath = os.path.join(rPath, '.')[8:]
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' rmdir ' + logPath + ' uncommitted'))
+                    status = fileManage.rmdir(rPath, sock)
+                    if status == 'success':
+                        print 'rm success'
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' rmdir ' + logPath + ' committed'))
+                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                    elif status == 'fail':
+                        mylog.delete_last_line()
                 else:
-                    sock.send('path error')
-                    index += 1
-            elif command == 'cp':
-                index += 1
+                    sock.send('Directory not exists')
+
             elif command == 'index':
                 sock.send(str(mylog.get_latest_index()))
             elif command == 'log':

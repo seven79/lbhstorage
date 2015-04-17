@@ -18,7 +18,6 @@ def rtnFile(path, sock):
     else:
         sock.send(sendBuffer)
     
-
 def uploadFile(path, filename, sock, size):
     print 'path:' + path
     print 'filename:'+ filename
@@ -41,6 +40,7 @@ def uploadFile(path, filename, sock, size):
     elif rev == 'Fail':
         os.remove(os.path.join(path ,filename))
         return 'fail'
+
 def downloadFile(path_filename, sock):
     sock.send('EXISTS ' + str(os.path.getsize(path_filename)))
     print 'EXISTS ' + str(os.path.getsize(path_filename))
@@ -63,8 +63,28 @@ def removeFile(filename, sock):
         os.rename((filename + '##$'), filename)
         return 'fail'
 
-
 def mkdir(path, dirName, sock):
     os.mkdir(os.path.join(path, dirName))
-    sock.send('Dir %s Created' % dirName)
-#def rmdir(path, dirName, sock):
+    print "mkdir Complete!"
+    sock.send("commit")
+    rev = sock.recv(1024)
+    if rev == 'ACK':
+        return 'success'
+    elif rev == 'Fail':
+        os.remove(os.path.join(path ,dirName))
+        return 'fail'
+
+
+
+
+def rmdir(dirName, sock):
+    os.rename(dirName, (dirName + '##$'))
+    print "rmdir Complete!"
+    sock.send("commit")
+    rev = sock.recv(1024)
+    if rev == 'ACK':
+        return 'success'
+    elif rev == 'Fail':
+        os.rename((dirName + '##$'), dirName)
+        return 'fail'
+    

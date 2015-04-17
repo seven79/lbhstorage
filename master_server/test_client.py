@@ -39,6 +39,8 @@ class client:
                         while bytesToSend != "":
                             bytesToSend = f.read(1024)
                             cc.send(bytesToSend)
+            else words[0] == 'download':
+                
         cc.close()
          
 

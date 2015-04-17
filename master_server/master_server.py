@@ -157,7 +157,7 @@ class Handler(threading.Thread):
     def client_handler(self):
         while True:
             #receive request from client
-            request = recv_msg(connect,-1,'master')
+            request = recv_msg(self.connect,-1,'master')
             if request == '':
                 continue
             #check if now there are at least 2 node connected to service server
@@ -196,9 +196,21 @@ class Handler(threading.Thread):
                 os.remove('service_upload/'+command[2])
 
             elif command[0] == 'download':
-                download_file(valid_list, command[1], command[2], str(-1), 'service')
-                send_file(command,'service_download/',self.connect)
-                os.remove('service_download/'+command[2])
+                if download_file(valid_list[0], command[1], command[2], str(-1), 'service') == True:
+                    send_file(command,'service_download/',self.connect)
+                    os.remove('service_download/'+command[2])
+                else:
+                    if config.error_message['service'][valid_list[0]] == 'not exist':
+                        if send_msg('not exist',self.connect,-1,'client') == False:
+                            print('client disconnect.')
+                            self.connect.close()
+                            break
+                    else:
+                        if send_msg('fail',self.connect,-1,'client') == False:
+                            print('client disconnect.')
+                            self.connect.close()
+                            break
+                    
             
     
                 
@@ -281,11 +293,11 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
         #check if at least 2 nodes reply commit
         new_node_list = []
         for i in node_list:
-        if config.action_result[server_type][i] == True:
-            new_node_list.append(i)
+            if config.action_result[server_type][i] == True:
+                new_node_list.append(i)
 
         if server_type == 'service':
-            two_phase_commit(tc, new_node_list, server_type)
+            two_phase_commit(tc, new_node_list)
         #write log
         retrive_log(tc,new_node_list)
                 
@@ -297,6 +309,8 @@ def download_file(node_list, src_dir, filename, index, server_type):
     tc.write_message('download '+src_dir+' '+ filename + ' ' + index, node_list)
 
     tc.wait_response(node_list)
+    return config.action_result[server_type][node_list]
+    
 
 
 def switcher(cmd,connect,client_id,t_name):
@@ -305,6 +319,7 @@ def switcher(cmd,connect,client_id,t_name):
               'download': handle_download,
               'ack': handle_ack,
               'fail': handle_fail,
+              'log': handle_log,
           }
     switch[cmd[0]](cmd,connect,client_id,t_name)
 
@@ -417,8 +432,17 @@ def handle_download(cmd,connect,client_id,server_type):
                 totalRecv += len(data)
                 f.write(data)
             print "Download Complete!"
+        config.action_result[server_type][client_id] = True
+        config.response_ready[server_type][client_id].set()
+        return
+
     else:
         print 'No such file'
+        config.error_message[server_type][client_id] = 'not exist'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+
 
 def handle_ack(cmd,connect,client_id,server_type):
     if send_msg('ACK',connect, client_id, server_type) == False:
@@ -432,6 +456,15 @@ def handle_fail(cmd,connect,client_id,server_type):
     config.action_result[server_type][client_id] = True  
     config.response_ready[server_type][client_id].set()
 
+def handle_log(cmd, connect, client_id, server_type):
+    latest_log = recv_msg(connect, client_id, server_type)
+    if latest_log == '':
+        return
+    config.latest_log[client_id] = latest_log
+    config.action_result[server_type][client_id] = True  
+    config.response_ready[server_type][client_id].set()
+
+    
 
 def receive_file(cmd,connect):
     size = long(cmd[3])
@@ -489,6 +522,7 @@ def send_msg(message, connect, client_id, server_type):
         connect.close()
         if server_type == 'maintain' or server_type == 'service':
             config.STATE_TABLE[server_type][client_id] = False
+            config.error_message[server_type][client_id] = 'send error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()
         return False
@@ -501,6 +535,7 @@ def recv_msg(connect, client_id, server_type):
         print "Error receiving data: %s" % e
         if server_type == 'maintain' or server_type == 'service':
             config.STATE_TABLE[server_type][client_id] = False
+            config.error_message[server_type][client_id] = 'recv error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()
         print('Receive message error: '+'node '+str(client_id)+' may disconnect from '+server_type)
@@ -511,6 +546,7 @@ def recv_msg(connect, client_id, server_type):
         print('Receive message error: '+'node '+str(client_id)+' may disconnect from '+server_type)
         if server_type == 'maintain' or server_type == 'service':
             config.STATE_TABLE[server_type][client_id] = False
+            config.error_message[server_type][client_id] = 'recv error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()
 
@@ -540,6 +576,7 @@ def retrive_log(tc, node_list):
 
     if same == True:
         mylog = log('master_server.log')
+        print('Writing log..')
         mylog.append(config.latest_log[node_list[0]])
     else:
         print('received logs are different.')

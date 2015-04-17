@@ -162,7 +162,8 @@ def handler(name, sock, section):
                     if status == 'success':
                         print 'upload success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
-                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                        if section == 'R':
+                            sock.send(mylog.read_line(mylog.get_latest_index()))
                     #TODO: commit log
                     elif status == 'fail':
                         mylog.delete_last_line()
@@ -197,8 +198,9 @@ def handler(name, sock, section):
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
                         print 'rm success'
-                        mylog.modify_last_line(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
-                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                        mylog.modify_last_line(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' committed')
+                        if section == 'R':
+                            sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':
                         mylog.delete_last_line()
                 else:
@@ -222,7 +224,8 @@ def handler(name, sock, section):
                     if status == 'success':
                         print 'mkdir success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' mkdir ' + logPath + ' ' + rdirName + ' committed'))
-                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                        if section == 'R':
+                            sock.send(mylog.read_line(mylog.get_latest_index()))
                     #TODO: commit log
                     elif status == 'fail':
                         mylog.delete_last_line()
@@ -247,7 +250,8 @@ def handler(name, sock, section):
                     if status == 'success':
                         print 'rm success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' rmdir ' + logPath + ' committed'))
-                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                        if section == 'R':
+                            sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':
                         mylog.delete_last_line()
                 else:

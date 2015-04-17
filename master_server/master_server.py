@@ -12,6 +12,8 @@ class log:
         self.filename = filename
 
     def append(self, message):
+        if message == '':
+            return
         with open(self.filename,'a') as f:
             f.write(message+'\n')
     
@@ -159,7 +161,8 @@ class Handler(threading.Thread):
             #receive request from client
             request = recv_msg(self.connect,-1,'master')
             if request == '':
-                continue
+                self.connect.close()
+                break
             #check if now there are at least 2 node connected to service server
             node_list = []
             valid_list = []
@@ -192,7 +195,13 @@ class Handler(threading.Thread):
             #new_index = self.log.get_latest_index()+1
             if command[0] == 'upload':
                 receive_file(command,self.connect)
-                upload_file(valid_list,command[1],command[2],'service_upload/', 'service')
+                if upload_file(valid_list,command[1],command[2],'service_upload/', 'service') == False:
+                    if config.error_message['service'][valid_list[0]] == 'path invalid':
+                        self.connect.send('path invalid')
+                else:
+                    self.connect.send('success')
+                
+                    
                 os.remove('service_upload/'+command[2])
 
             elif command[0] == 'download':
@@ -210,6 +219,23 @@ class Handler(threading.Thread):
                             print('client disconnect.')
                             self.connect.close()
                             break
+            #handle rm request
+            elif command[0] == 'rm':
+                if remove_file(valid_list, command[1], command[2], 'service') == False:
+                    if config.error_message['service'][valid_list[0]] == 'path invalid':
+                        self.connect.send('path invalid')
+                else:
+                    self.connect.send('success')
+            #handle cd request
+            elif command[0] == 'cd':
+                if cd(valid_list[0], command[1]) == False:
+                    if config.error_message['service'][valid_list[0]] == 'path invalid':
+                        self.connect.send('path invalid')
+                else:
+                    self.connect.send(config.curr_dir)
+
+             
+                    
                     
             
     
@@ -296,10 +322,14 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
             if config.action_result[server_type][i] == True:
                 new_node_list.append(i)
 
+        if len(new_node_list) == 0:
+            return False
+
         if server_type == 'service':
             two_phase_commit(tc, new_node_list)
-        #write log
-        retrive_log(tc,new_node_list)
+            #write log
+            retrive_log(tc,new_node_list)
+        return True
                 
     else:
         print('upload '+src_dir+' error: no such file.')
@@ -311,7 +341,35 @@ def download_file(node_list, src_dir, filename, index, server_type):
     tc.wait_response(node_list)
     return config.action_result[server_type][node_list]
     
+def remove_file(node_list, path, filename, server_type):
+    tc = threadcomm(server_type)
+    tc.write_message('rm'+' '+path+' '+filename, node_list)
+    tc.wait_response(node_list)
 
+    #check if at least 2 nodes reply commit
+    new_node_list = []
+    for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+            
+    if len(new_node_list) == 0:
+        return False
+        
+    if server_type == 'service':
+        two_phase_commit(tc, new_node_list)
+        #write log
+        retrive_log(tc,new_node_list)
+    return True
+
+def cd(node_list, dir):
+    tc = threadcomm(server_type)
+    tc.write_message('cd'+' '+dir, node_list)
+    tc.wait_response(node_list)
+
+    if config.action_result[server_type][node_list] == False:
+        return False
+
+    return True
 
 def switcher(cmd,connect,client_id,t_name):
     switch = {'index': handle_index,
@@ -320,6 +378,8 @@ def switcher(cmd,connect,client_id,t_name):
               'ack': handle_ack,
               'fail': handle_fail,
               'log': handle_log,
+              'rm': handle_remove,
+              'cd': handle_cd,
           }
     switch[cmd[0]](cmd,connect,client_id,t_name)
 
@@ -360,6 +420,7 @@ def handle_upload(cmd,connect,client_id,server_type):
     
     if ack == 'Path invalid':
         print('Upload: Path invalid.')
+        config.error_message[server_type][client_id] = 'path invalid'
         config.action_result[server_type][client_id] = False
         config.response_ready[server_type][client_id].set()
         return
@@ -417,7 +478,7 @@ def handle_download(cmd,connect,client_id,server_type):
         elif server_type == 'service':
             path = 'service_download/'
             
-        with open(path+filename, 'wb') as f:
+        with open(path+cmd[2], 'wb') as f:
             data = recv_msg(connect, client_id, server_type)
             if data == '':
                 return
@@ -464,6 +525,61 @@ def handle_log(cmd, connect, client_id, server_type):
     config.action_result[server_type][client_id] = True  
     config.response_ready[server_type][client_id].set()
 
+def handle_remove(cmd,connect,client_id,server_type):
+    msg = cmd[0]+' '+cmd[1]+' '+cmd[2]  
+    print(msg)
+
+    #rm path file_name   
+    if send_msg(msg,connect,client_id,server_type) == False:
+        return
+    
+
+    ack = recv_msg(connect, client_id, server_type)
+    if ack == '':
+        return
+    
+    if ack == 'Path invalid':
+        print('Remove: Path invalid.')
+        config.error_message[server_type][client_id] = 'path invalid'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'commit':
+        if server_type == 'maintain':
+            #if it's maintain server, no need to gather 2/3 commits
+            if send_msg('ACK',connect,client_id,server_type) == False:
+                return
+            config.action_result[server_type][client_id] = True
+    else:
+        print('not receive commit')
+        config.action_result[server_type][client_id] = False
+            
+    config.response_ready[server_type][client_id].set()
+
+def handle_cd(cmd,connect,client_id,server_type):
+    msg = cmd[0]+' '+cmd[1] 
+    print(msg)
+    #cd path
+    if send_msg(msg,connect,client_id,server_type) == False:
+        return
+    
+
+    ack = recv_msg(connect, client_id, server_type)
+    if ack == '':
+        return
+    if ack == 'path invalid':
+        print('CD: Path invalid.')
+        config.error_message[server_type][client_id] = 'path invalid'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    else:
+        config.curr_dir = ack
+        config.action_result[server_type][client_id] = True
+        config.response_ready[server_type][client_id].set()
+        return
+        
+    
     
 
 def receive_file(cmd,connect):
@@ -493,7 +609,7 @@ def send_file(cmd, src_dir, connect):
         return
 
     with open(src_dir,'rb') as f:
-        bytesToSend = f.ready(1024)
+        bytesToSend = f.read(1024)
         if send_msg(bytesToSend,connect,-1,'client') == False:
             return
         while bytesToSend != "":
@@ -566,13 +682,14 @@ def retrive_log(tc, node_list):
     tc.write_message('log',node_list)
     tc.wait_response(node_list)
     #check if returned logs are same
-    temp = node_list[0]
+    temp = config.latest_log[node_list[0]]
     same = True
+    print('receive log: '+ str(config.latest_log))
     for i in node_list[1:]:
         if temp != config.latest_log[i]:
             same = False
             break;
-        temp = config.lastest_log[i]
+        temp = config.latest_log[i]
 
     if same == True:
         mylog = log('master_server.log')

@@ -8,14 +8,20 @@ class dir:
         self.user = user
         self.curr = '/'
 
-    def curr_dir():
+    def curr_dir(self):
         return self.curr
 
     def abs_dir(self, sub_dir):
         if sub_dir == '..':
-            if self.curr != '.':
-                res = self.curr[1:self.curr.find('/',1)]
-            return self.curr[1:]
+            if self.curr != '/':
+                res = self.curr[:self.curr.rfind('/')]
+                if res == '':
+                    return '.'
+                else:
+                    return res[1:]
+            else: 
+                return '.'
+                    
         elif sub_dir == '.':
             if self.curr == '/':
                 return '.'
@@ -27,7 +33,10 @@ class dir:
             else:
                 return sub_dir[1:]
         else:
-            res = self.curr+'/' + sub_dir
+            if self.curr == '/':
+                res = self.curr + sub_dir
+            else:
+                res = self.curr+'/' + sub_dir
             return res[1:]
 
     def update_dir(self, new_dir):
@@ -49,24 +58,27 @@ class client:
         cc.connect((self.ip, self.port))
         
         
-        request = 'cd'+' '+self.mydir.curr_dir()
+        request = 'cd'+' '+'.'
         cc.send(request)
-        response == cc.recv(1024)
-        if response == 'path invalid':
-            print('no such directory.')
-        elif response == 'empty':
-            print('current directory:'+self.mydir.curr_dir())
-            print('files in current directory are:')
-        else:
-            print('current directory:'+self.mydir.curr_dir())
-            print('files in current directory are:')
-            print(response)
+        response = cc.recv(1024)
+        if response == 'STOP':
+            print('Oops,Storage service is not available now.')                   
+        elif response == 'OK':
+            print('Storage sevice is available')
+
+            response = cc.recv(1024)
+            if response == 'path invalid':
+                print('no such directory.')
+            else:
+                print('current directory:'+self.mydir.curr_dir())
+                print('files in current directory are:')
+                print(response)
             
         while True:
             request = raw_input('Please input request:\n')
             words = request.split()
             if words[0] == 'upload':
-                absDir = self.mydir.abs_dir(words[1], self.mydir.curr_dir())
+                absDir = self.mydir.abs_dir(words[1])
                 filename = words[2]
                 real_file = filename.split('/')
                 real_file = real_file[len(real_file)-1]
@@ -94,7 +106,7 @@ class client:
 
             elif words[0] == 'download':
                 dest_dir = 'download/'
-                absDir = self.mydir.abs_dir(words[1], self.mydir.curr_dir())                
+                absDir = self.mydir.abs_dir(words[1])                
                 request = words[0]+' '+absDir+' '+words[2]
                 print request
                 cc.send(request)
@@ -123,7 +135,7 @@ class client:
                             f.write(data)
                         print "Receive Complete!"
             elif words[0] == 'rm':
-                absDir = abs_dir(words[1], self.mydir.curr_dir())                
+                absDir = self.mydir.abs_dir(words[1])                
                 request = words[0]+' '+absDir+' '+words[2]
                 print request
                 cc.send(request)
@@ -138,20 +150,65 @@ class client:
                         print("Path invalid.")
                         continue
                     elif ack == 'success':
-                        print("remove file successfully.")
-                        continue
+                        print("Remove file successfully.")
             elif words[0] == 'cd':
-                absDir = self.mydir.abs_dir(words[1], self.mydir.curr_dir())
+                absDir = self.mydir.abs_dir(words[1])
                 request = 'cd'+' '+absDir
                 cc.send(request)
-                response == cc.recv(1024)
+                response = cc.recv(1024)
+                if response == 'STOP':
+                    print('Oops,Storage service is not available now.')                   
+                    continue
+                elif response == 'OK':
+                    print('Storage sevice is available')
+
+                response = cc.recv(1024)
                 if response == 'path invalid':
-                    print('no such directory.')
+                    print('No such directory.')
                 else:
                     self.mydir.update_dir(absDir)
-                    print('current directory:'+self.mydir.curr_dir())
-                    print('files in current directory are:')
+                    print('Current directory:'+self.mydir.curr_dir())
+                    print('Files in current directory are:')
                     print(response)
+            elif words[0] == 'mkdir':
+                absDir = self.mydir.abs_dir(words[1])                
+                request = words[0]+' '+absDir+' '+words[2]
+                print request
+                cc.send(request)
+                response = cc.recv(1024)
+                if response == 'STOP':
+                    print('Oops,Storage service is not available now.')                   
+                    continue
+                elif response == 'OK':
+                    print('Storage sevice is available')
+                    ack = cc.recv(1024)
+                    if ack == 'path invalid':
+                        print("Path invalid.")
+                        continue
+                    if ack == 'exists':
+                        print("Directory already exists.")
+                        continue
+                    elif ack == 'success':
+                        print("Create directory successfully.")
+            elif words[0] == 'rmdir':
+                absDir = self.mydir.abs_dir(words[1])                
+                request = words[0]+' '+absDir
+                print request
+                cc.send(request)
+                response = cc.recv(1024)
+                if response == 'STOP':
+                    print('Oops,Storage service is not available now.')                   
+                    continue
+                elif response == 'OK':
+                    print('Storage sevice is available')
+                    ack = cc.recv(1024)
+                    if ack == 'not exist':
+                        print("Directory does not exist.")
+                        continue
+                    elif ack == 'not empty':
+                        print("Directory is not empty, you must remove all the files under it before remove directory.")
+                    elif ack == 'success':
+                        print("Remove directory successfully.")
                 
                 
                 

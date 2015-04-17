@@ -163,7 +163,8 @@ class Handler(threading.Thread):
             if request == '':
                 self.connect.close()
                 break
-            #check if now there are at least 2 node connected to service server
+
+            #--------check if now there are at least 2 node connected to service server-------------
             node_list = []
             valid_list = []
             for i in range(3):
@@ -176,7 +177,8 @@ class Handler(threading.Thread):
                 self.connect.send('STOP')
                 print('Received request, but there are not enough nodes connected.')
                 continue
-            #if node_list >= 2, check now many node has latest log
+
+            #----------check now many node has latest log(valid)----------------
             latest_index=query_index(node_list,'service')
             for i in node_list:
               if latest_index[i] == self.log.get_latest_index():
@@ -193,6 +195,9 @@ class Handler(threading.Thread):
             #command is a list, is parsed request
             command = request.split()
             #new_index = self.log.get_latest_index()+1
+
+
+            #----------handle upload request----------------
             if command[0] == 'upload':
                 receive_file(command,self.connect)
                 if upload_file(valid_list,command[1],command[2],'service_upload/', 'service') == False:
@@ -204,6 +209,7 @@ class Handler(threading.Thread):
                     
                 os.remove('service_upload/'+command[2])
 
+            #----handle download request----------------
             elif command[0] == 'download':
                 if download_file(valid_list[0], command[1], command[2], str(-1), 'service') == True:
                     send_file(command,'service_download/',self.connect)
@@ -219,20 +225,42 @@ class Handler(threading.Thread):
                             print('client disconnect.')
                             self.connect.close()
                             break
-            #handle rm request
+            #-------handle rm request---------------------
             elif command[0] == 'rm':
                 if remove_file(valid_list, command[1], command[2], 'service') == False:
                     if config.error_message['service'][valid_list[0]] == 'path invalid':
                         self.connect.send('path invalid')
                 else:
                     self.connect.send('success')
-            #handle cd request
+            #--------handle cd request---------------------
             elif command[0] == 'cd':
-                if cd(valid_list[0], command[1]) == False:
+                if cd(valid_list[0], command[1], 'service') == False:
                     if config.error_message['service'][valid_list[0]] == 'path invalid':
                         self.connect.send('path invalid')
                 else:
                     self.connect.send(config.curr_dir)
+
+            #---------handle mkdir request----------------
+            elif command[0] == 'mkdir':
+                if mkdir(valid_list, command[1], command[2], 'service') == False:
+                    if config.error_message['service'][valid_list[0]] == 'path invalid':
+                        self.connect.send('path invalid')
+                    elif config.error_message['service'][valid_list[0]] == 'Directory already exists':
+                        self.connect.send('exists')
+                else:
+                    self.connect.send('success')
+
+             #-------handle rmdir request---------------------
+            elif command[0] == 'rmdir':
+                if remove_dir(valid_list, command[1],  'service') == False:
+                    if config.error_message['service'][valid_list[0]] == 'not exist':
+                        self.connect.send('not exist')
+                    elif config.error_message['service'][valid_list[0]] == 'not empty':
+                        self.connect.send('not empty')
+                else:
+                    self.connect.send('success')
+
+            
 
              
                     
@@ -282,6 +310,7 @@ class manage(threading.Thread):
             for i in invalid_list:
                 while config.latest_index[i] < self.log.get_latest_index():
                     recovery(i, valid_list[0], config.latest_index[i]+1, self.log)
+                    config.lates_index[i] += 1
             #check every 5s
             time.sleep(5)
                     
@@ -289,16 +318,24 @@ class manage(threading.Thread):
     
 def recovery(recovery_node,helper_node, index, mylog):
     print('start recovery node '+str(recovery_node)+', helper is '+str(helper_node))
-    curr_log = mylog.read_log(index).split()
+    curr_log = mylog.read_line(index).split()
     cmd = curr_log[1] 
     if cmd == 'upload':
         download_file(helper_node, curr_log[2], curr_log[3], curr_log[0], 'maintain')
-        upload_file(recovery_node, curr_log[2], curr_log[3], 'maintain_upload/'+filename, 'maintain')
-        os.remove('maintain_upload'+filename)
+        upload_file(recovery_node, curr_log[2], curr_log[3], 'maintain_upload/'+curr_log[3], 'maintain')
+        os.remove('maintain_upload/'+curr_log[3])
+    elif cmd == 'rm':
+        remove_file(recovery_node, curr_log[2], curr_log[3], 'maintain')
+    elif cmd == 'rmdir':
+        remove_dir(recovery_node, curr_log[2], 'maintain')
+    elif cmd == 'mkdir':
+        mkdir(recovery_node, curr_log[2], curr_log[3], 'maintain')
+        
     
 
     
-        
+#------------Functions managers use to send request to 3 handler connected by 3 nodes       
+#------------------------------------------------------------------------------------
 
 def query_index(node_list,server_type):
     tc = threadcomm(server_type)
@@ -361,15 +398,58 @@ def remove_file(node_list, path, filename, server_type):
         retrive_log(tc,new_node_list)
     return True
 
-def cd(node_list, dir):
+def remove_dir(node_list, path, server_type):
+    tc = threadcomm(server_type)
+    tc.write_message('rmdir'+' '+path, node_list)
+    tc.wait_response(node_list)
+
+    #check if at least 2 nodes reply commit
+    new_node_list = []
+    for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+            
+    if len(new_node_list) == 0:
+        return False
+        
+    if server_type == 'service':
+        two_phase_commit(tc, new_node_list)
+        #write log
+        retrive_log(tc,new_node_list)
+    return True
+
+
+def cd(node_list, dir, server_type):
     tc = threadcomm(server_type)
     tc.write_message('cd'+' '+dir, node_list)
     tc.wait_response(node_list)
 
     if config.action_result[server_type][node_list] == False:
         return False
-
     return True
+
+def mkdir(node_list, dir, dir_name, server_type):
+    tc = threadcomm(server_type)
+    tc.write_message('mkdir'+' '+dir+' '+dir_name, node_list)
+    tc.wait_response(node_list)
+
+        #check if at least 2 nodes reply commit
+    new_node_list = []
+    for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+            
+    if len(new_node_list) == 0:
+        return False
+        
+    if server_type == 'service':
+        two_phase_commit(tc, new_node_list)
+        #write log
+        retrive_log(tc,new_node_list)
+    return True
+    
+
+
 
 def switcher(cmd,connect,client_id,t_name):
     switch = {'index': handle_index,
@@ -380,9 +460,13 @@ def switcher(cmd,connect,client_id,t_name):
               'log': handle_log,
               'rm': handle_remove,
               'cd': handle_cd,
+              'mkdir': handle_mkdir,
+              'rmdir': handle_rmdir,
           }
     switch[cmd[0]](cmd,connect,client_id,t_name)
 
+#---------------------Funcitons used by each handler to communicate with one node-------------------
+#---------------------------------------------------------------------------------------------------
 
 def handle_index(cmd,connect,client_id,server_type):
      
@@ -556,6 +640,43 @@ def handle_remove(cmd,connect,client_id,server_type):
             
     config.response_ready[server_type][client_id].set()
 
+def handle_rmdir(cmd,connect,client_id,server_type):
+    msg = cmd[0]+' '+cmd[1]  
+    print(msg)
+
+    #rm path file_name   
+    if send_msg(msg,connect,client_id,server_type) == False:
+        return
+    
+
+    ack = recv_msg(connect, client_id, server_type)
+    if ack == '':
+        return
+    
+    if ack == 'Directory not exists':
+        print('Remove_dir: Directory not exists.')
+        config.error_message[server_type][client_id] = 'not exist'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'Directory is not empty':
+        print('Remove_dir: Directory not empty.')
+        config.error_message[server_type][client_id] = 'not empty'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'commit':
+        if server_type == 'maintain':
+            #if it's maintain server, no need to gather 2/3 commits
+            if send_msg('ACK',connect,client_id,server_type) == False:
+                return
+            config.action_result[server_type][client_id] = True
+    else:
+        print('not receive commit')
+        config.action_result[server_type][client_id] = False
+            
+    config.response_ready[server_type][client_id].set()
+
 def handle_cd(cmd,connect,client_id,server_type):
     msg = cmd[0]+' '+cmd[1] 
     print(msg)
@@ -565,9 +686,10 @@ def handle_cd(cmd,connect,client_id,server_type):
     
 
     ack = recv_msg(connect, client_id, server_type)
+    print('cd ack: '+ack)
     if ack == '':
         return
-    if ack == 'path invalid':
+    if ack == 'Path invalid':
         print('CD: Path invalid.')
         config.error_message[server_type][client_id] = 'path invalid'
         config.action_result[server_type][client_id] = False
@@ -579,8 +701,41 @@ def handle_cd(cmd,connect,client_id,server_type):
         config.response_ready[server_type][client_id].set()
         return
         
+def handle_mkdir(cmd,connect,client_id,server_type):
+    msg = cmd[0]+' '+cmd[1]+' '+cmd[2] 
+    print(msg)
     
+    if send_msg(msg,connect,client_id,server_type) == False:
+        return
+
+    ack = recv_msg(connect, client_id, server_type)
+    if ack == '':
+        return
     
+    if ack == 'Path invalid':
+        print('Mkdir: Path invalid.')
+        config.error_message[server_type][client_id] = 'path invalid'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'Directory already exists':
+        print('Mkdir: Directory already exists.')
+        config.error_message[server_type][client_id] = 'Directory already exists'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'commit':
+        print('receive commit')
+        if server_type == 'maintain':
+            #if it's maintain server, no need to gather 2/3 commits
+            if send_msg('ACK',connect,client_id,server_type) == False:
+                return
+            config.action_result[server_type][client_id] = True
+    else:
+        print('not receive commit')
+        config.action_result[server_type][client_id] = False
+            
+    config.response_ready[server_type][client_id].set()
 
 def receive_file(cmd,connect):
     size = long(cmd[3])

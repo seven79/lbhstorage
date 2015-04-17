@@ -13,7 +13,7 @@ def parsePath(path, section):
         currPath = '.'
         dirs = path.split('/')
         for directory in dirs:
-            if directory == '.':
+            if directory == '.' or directory == '':
                 continue
             else:
                 splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
@@ -21,6 +21,8 @@ def parsePath(path, section):
                 print 'dirs of %s' % currPath
                 print splitDir
                 pathToAdd = filter(lambda x: os.path.exists(os.path.join(currPath, x[0])) and (len(x[1]) == 1 or len(x[1]) == 2) and x[1][0] == directory, splitDir)
+                print 'pathToAdd is:'
+                print pathToAdd
                 if len(pathToAdd) == 0:
                     return 'Path invalid'
                 else:

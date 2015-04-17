@@ -97,7 +97,7 @@ def handler(name, sock, section):
                 else:
                     path = ('node%s/' % nodeID) + words[1]
                 rPath = parsePath(path, section)
-                fileManage.rtnFile(path, sock)
+                fileManage.rtnFile(rPath, sock)
 
             elif command == 'ls':
                 sock.send('Receive ls')                
@@ -109,11 +109,12 @@ def handler(name, sock, section):
                 size = long(words[3])
                 if rPath != 'Path invalid':#TODO, parse to local
                     rFilename = filename + '##' + str(mylog.get_latest_index())
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
+                    logPath = os.path.join(rPath, '.')[8:]
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
                     if status == 'success':
                         print 'upload success'
-                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
                         sock.send(mylog.read_line(mylog.get_latest_index()))
                     #TODO: commit log
                     elif status == 'fail':
@@ -137,8 +138,14 @@ def handler(name, sock, section):
                 filename = words[2]
                 rPath = parsePath(os.path.join(path,filename), section)
                 if rPath != 'Path invalid':
-                    fileManage.removeFile(path, filename, sock)
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' ' + request))
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' rm ' + rPath + ' uncommitted'))
+                    status = fileManage.removeFile(rPath, sock)
+                    if status == 'success':
+                        print 'rm success'
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
+                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                    elif status == 'fail':
+                        mylog.delete_last_line()
                 else:
                     sock.send('File not exists')
             elif command == 'rmtmp':

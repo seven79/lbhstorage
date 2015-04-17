@@ -48,13 +48,17 @@ def downloadFile(path_filename, sock):
             sock.send(bytesToSend)
 
             
-def removeFile(path, filename, sock):
-    os.remove(os.path.join(path, filename))
-    sock.send('File %s Removed' % filename)
-    
-def toTmpFile(path, filename, sock, index):
-    os.rename(os.path.join(path, filename), os.path.join(path, (filename + '##' + index + '##tmp')))
-    sock.send('File %s Removed (saved as tmp)' % filename)
+def removeFile(filename, sock):
+    os.rename(filename, (filename + '##$'))
+    print "rm Complete!"
+    sock.send("commit")
+    rev = sock.recv(1024)
+    if rev == 'ACK':
+        return 'success'
+    elif rev == 'Fail':
+        os.rename((filename + '##$'), filename)
+        return 'fail'
+
 
 def mkdir(path, dirName, sock):
     os.mkdir(os.path.join(path, dirName))

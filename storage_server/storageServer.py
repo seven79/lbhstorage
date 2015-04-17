@@ -190,7 +190,7 @@ def handler(name, sock, section):
                     if os.path.isdir(rPath):
                         sock.send('Not file')
                         continue
-                    logPath = parseLogPath(path)
+                    logPath = parseLogPath(rPath)
                     rFilename = filename
                     if section == 'R':
                         rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
@@ -198,7 +198,7 @@ def handler(name, sock, section):
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
                         print 'rm success'
-                        mylog.modify_last_line(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' committed')
+                        mylog.modify_last_line(str(mylog.get_latest_index()) + ' rm ' + logPath + ' ' + rFilename + ' committed')
                         if section == 'R':
                             sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':

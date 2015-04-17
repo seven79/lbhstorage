@@ -44,6 +44,14 @@ def parsePath(path, section):
         return 'Path invalid'
 
         
-        
+def checkExist(path, fileToCheck):
+    splitDir =[(filename, filename.split('##')) for filename in os.listdir(path)]
+    checkList = filter(lambda x: len(x[1]) == 2 and x[1][0] == fileToCheck, splitDir)
+    if len(checkList) > 0:
+        return True
+    else:
+        return False
+    
+    
 
 

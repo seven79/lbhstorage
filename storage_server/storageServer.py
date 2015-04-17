@@ -4,7 +4,7 @@ import os
 import select
 import fileManage
 from parsePath import parsePath
-
+from parsePath import checkExist
 MT_status = 0
 RR_status = 0
 timeout = 1 #1 second
@@ -110,6 +110,9 @@ def handler(name, sock, section):
                 rPath = parsePath(path, section)
                 filename = words[2]
                 size = long(words[3])
+                if checkExist(rPath, filename):
+                    sock.send('File already exists')
+                    continue
                 if rPath != 'Path invalid':#TODO, parse to local
                     rFilename = filename + '##' + str(mylog.get_latest_index())
                     logPath = os.path.join(rPath, '.')[8:]

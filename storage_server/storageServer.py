@@ -119,8 +119,9 @@ def handler(name, sock, section):
     sock.send(str(nodeID))
     index = 0
     mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
-    print rollBack(mylog.read_line(mylog.get_latest_index()))
-    mylog.initLog()
+    if(mylog.get_latest_index() != 0):
+        print rollBack(mylog.read_line(mylog.get_latest_index()))
+        mylog.initLog()
     while True:
         ready = select.select([sock], [], [], timeout)
         if ready[0]:
@@ -186,12 +187,13 @@ def handler(name, sock, section):
                     if os.path.isdir(rPath):
                         sock.send('Not file')
                         continue
-                    logPath = parseLogPath(rPath)
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' uncommitted'))
+                    logPath = parseLogPath(path)
+                    rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
+                    mylog.append(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
                         print 'rm success'
-                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' rm ' + logPath + ' committed'))
+                        mylog.modify_last_line(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
                         sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':
                         mylog.delete_last_line()

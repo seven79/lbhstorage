@@ -111,10 +111,10 @@ def handler(name, sock, section):
                 filename = words[2]
                 size = long(words[3])
                 if checkExist(rPath, filename):
-                    sock.send('File already exists')
+                    sock.send('File already exists')#overwrite the existing file or not
                     continue
                 if rPath != 'Path invalid':#TODO, parse to local
-                    rFilename = filename + '##' + str(mylog.get_latest_index())
+                    rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
                     logPath = os.path.join(rPath, '.')[8:]
                     mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
@@ -148,23 +148,37 @@ def handler(name, sock, section):
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
                         print 'rm success'
-                        logPath = os.path.join(rPath, '.')[8:]
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' rm ' + logPath + ' committed'))
                         sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':
                         mylog.delete_last_line()
                 else:
                     sock.send('File not exists')
-            elif command == 'rmtmp':
-                path = words[1]
+            elif command == 'mv':
+                srcPath = words[1]
+                srcPath = ('node%s/' % nodeID) + srcPath
                 filename = words[2]
-                opIndex = words[3]
-                tmpFile = filename + '##' + str(opIndex + 1) + '##tmp'
-                if os.path.exists(os.path.join(path, tmpFile)):
-                    fileManage.removeFile(path, tmpFile, sock)
-                    #index += 1
-                else:
+                desPath = words[3]
+                desPath = ('node%s/' % nodeID) + desPath
+                rsPath = parsePath(os.path.join(srcPath, filename), section)
+                dsPath = parsePath(desPath, section)
+                if rsPath == 'Path invalid':
                     sock.send('File not exists')
+                if dsPath == 'Path invalid':
+                    sock.send('Destination directory not exists')
+                else:
+                    logrPath = os.path.join(rsPath, '.')[8:]
+                    logdPath = os.path.join(dsPath, '.')[8:]
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' mv ' + logrPath + ' ' + logdPath + ' uncommitted'))
+                    dsPath = filename + '##' + str(mylog.get_latest_index()+1)
+                    status = fileManage.moveFile(rsPath, dsPath, sock)
+                    if status == 'success':
+                        print 'mv success'
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' mv ' + logrPath + ' ' + logdPath + ' committed'))
+                        sock.send(mylog.read_line(mylog.get_latest_index()))
+                    elif status == 'fail':
+                        mylog.delete_last_line()
+ 
             elif command == 'mkdir':
                 path = words[1]
                 dirName = words[2]
@@ -186,8 +200,6 @@ def handler(name, sock, section):
                 else:
                     sock.send('path error')
                     index += 1
-            elif command == 'mv':
-                index += 1
             elif command == 'cp':
                 index += 1
             elif command == 'index':

@@ -8,12 +8,16 @@ def rtnFile(path, sock):
         filepath = os.path.join(path, filename)
         tmp = filename.split('##')
         sFilename = tmp[0]
-        if sFilename != '.':
+        if sFilename != '.' and len(tmp) <= 2:
             if os.path.isdir(filepath):
                 sendBuffer += ('/' + sFilename + '\n')
             elif os:
                 sendBuffer += (sFilename + '\n')
-    sock.send(sendBuffer)
+    if sendBuffer == '':
+        sock.send('(No file in this directory)')
+    else:
+        sock.send(sendBuffer)
+    
 
 def uploadFile(path, filename, sock, size):
     print 'path:' + path

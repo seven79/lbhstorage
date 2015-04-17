@@ -28,7 +28,12 @@ def userRequest(name, sock):
                         sock.send(bytesToSend)
                 status = sock.recv(1024)
                 if status == 'commit':
-                    sock.send('ACK')
+                    toSend = raw_input('ACK or Fail? -> ')
+                    sock.send(toSend)
+                    log = sock.recv(1024)
+                    print log
+            else:
+                print 'what the res is ?_%s_' % res    
                 
         elif words[0] == 'download':
             filename = words[2] 
@@ -43,7 +48,6 @@ def userRequest(name, sock):
                 totalRecv = len(data)
                 f.write(data)
                 while totalRecv < size:
-                    print str(totalRecv) + '/' + str(size)
                     data = sock.recv(1024)
                     totalRecv += len(data)
                     f.write(data)
@@ -55,7 +59,13 @@ def userRequest(name, sock):
         elif words[0] == 'rm' or words[0] == 'rmtmp' or words[0] == 'mkdir' or words[0] == 'rmdir':
             sock.send(userInput)
             res = sock.recv(1024)
-            print res
+            if res == 'commit':
+                toSend = raw_input('ACK or Fail? -> ')
+                sock.send(toSend)
+                log = sock.recv(1024)
+                print log
+            else:
+                print 'what the res is ?_%s_' % res    
         else:
             sock.send(userInput)
             userResponse = sock.recv(1024)
@@ -75,6 +85,7 @@ def Main():
         c, addr = s.accept()
         print "client connected ip: <" + str(addr) + ">"
         t = threading.Thread(target = userRequest, args = ("userRequest", c))
+        t.setDaemon(True)
         t.start()
 
     s.close()

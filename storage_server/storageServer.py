@@ -90,14 +90,17 @@ def handler(name, sock, section):
             request = sock.recv(1024)
             words = request.split(" ")
             command = words[0]
-            if command == 'cd':
+            if command == 'cd' and section == 'R':
                 path = []
                 if len(words) == 1:
                     path = ('node%s/' % nodeID)
                 else:
                     path = ('node%s/' % nodeID) + words[1]
                 rPath = parsePath(path, section)
-                fileManage.rtnFile(rPath, sock)
+                if rPath != 'Path invalid':
+                    fileManage.rtnFile(rPath, sock)
+                else:
+                    sock.send('Path invalid')
 
             elif command == 'ls':
                 sock.send('Receive ls')                
@@ -119,7 +122,6 @@ def handler(name, sock, section):
                     #TODO: commit log
                     elif status == 'fail':
                         mylog.delete_last_line()
-                        continue
                     #index += 1
                 else:
                     sock.send('Path invalid')
@@ -138,11 +140,13 @@ def handler(name, sock, section):
                 filename = words[2]
                 rPath = parsePath(os.path.join(path,filename), section)
                 if rPath != 'Path invalid':
-                    mylog.append((str(mylog.get_latest_index() + 1) + ' rm ' + rPath + ' uncommitted'))
+                    logPath = os.path.join(rPath, '.')[8:]
+                    mylog.append((str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' uncommitted'))
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
                         print 'rm success'
-                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + rPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
+                        logPath = os.path.join(rPath, '.')[8:]
+                        mylog.modify_last_line((str(mylog.get_latest_index()) + ' rm ' + logPath + ' committed'))
                         sock.send(mylog.read_line(mylog.get_latest_index()))
                     elif status == 'fail':
                         mylog.delete_last_line()

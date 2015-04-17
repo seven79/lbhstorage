@@ -6,6 +6,7 @@ import fileManage
 from parsePath import parsePath
 from parsePath import checkExist
 from parsePath import checkDir
+
 MT_status = 0
 RR_status = 0
 timeout = 1 #1 second
@@ -52,7 +53,7 @@ class log:
         if lines != 0:
             lastLine = self.read_line(lines)
             words = lastLine.split(" ")
-            if words[len(words) - 1] == 'uncommitted':
+            if words[-1] == 'uncommitted':
                 self.delete_last_line()        
 
 
@@ -78,11 +79,47 @@ class log:
         return currPath
             
 '''
+def parseLogPath(Path):
+    logPath = []
+    if len(Path) == 7:
+        logPath = '.'
+    else:
+        logPath = Path[8:]
+    return logPath
+
+
+def rollBack(lastLog):
+    words = lastLog.split(' ')
+    if words[-1] == 'committed':
+        return 'Last log was committed'
+    elif words[-1] == 'uncommitted':
+        if words[1] == 'upload':
+            path = words[2]
+            path = ('node%s/' % nodeID) + path
+            filename = words[3]
+            fileManage.RBupload(path, filename)
+        elif words[1] == 'rm':
+            path = ('node%s/' % nodeID) + words[2]
+            fileManage.RBrm(path)
+        elif words[1] == 'mkdir':
+            path = words[2]
+            path = ('node%s/' % nodeID) + path
+            dirName = words[3]
+            fileManage.RBmkdir(path, dirName)
+        elif words[1] == 'rmdir':
+            path = ('node%s/' % nodeID) + words[2]
+            fileManage.RBrm(path)
+
+        return 'Last log was uncommitted. Last operation has been rolled back.'
+    else:
+        return 'Last log has no commit/uncommit info.'
+
 def handler(name, sock, section):
     # sock.setblocking(0)
     sock.send(str(nodeID))
     index = 0
     mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
+    print rollBack(mylog.read_line(mylog.get_latest_index()))
     mylog.initLog()
     while True:
         ready = select.select([sock], [], [], timeout)
@@ -116,7 +153,7 @@ def handler(name, sock, section):
                     continue
                 if rPath != 'Path invalid':#TODO, parse to local
                     rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
-                    logPath = os.path.join(rPath, '.')[8:]
+                    logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
                     if status == 'success':
@@ -146,7 +183,10 @@ def handler(name, sock, section):
                 filename = words[2]
                 rPath = parsePath(os.path.join(path,filename), section)
                 if rPath != 'Path invalid':
-                    logPath = os.path.join(rPath, '.')[8:]
+                    if os.path.isdir(rPath):
+                        sock.send('Not file')
+                        continue
+                    logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' uncommitted'))
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
@@ -168,7 +208,7 @@ def handler(name, sock, section):
                     continue
                 if rPath != 'Path invalid':
                     rdirName = dirName + '##' + str(mylog.get_latest_index() + 1)
-                    logPath = os.path.join(rPath, '.')[8:]
+                    logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' mkdir ' + logPath + ' ' + rdirName + ' uncommitted'))
                     status = fileManage.mkdir(rPath, rdirName, sock)
                     if status == 'success':
@@ -190,7 +230,10 @@ def handler(name, sock, section):
                     sock.send('Directory is not empty')
                     continue
                 if rPath != 'Path invalid':
-                    logPath = os.path.join(rPath, '.')[8:]
+                    if os.path.isfile(rPath):
+                        sock.send('Not directory')
+                        continue
+                    logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' rmdir ' + logPath + ' uncommitted'))
                     status = fileManage.rmdir(rPath, sock)
                     if status == 'success':

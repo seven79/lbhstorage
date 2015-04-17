@@ -88,3 +88,32 @@ def rmdir(dirName, sock):
         os.rename((dirName + '##$'), dirName)
         return 'fail'
     
+def RBupload(path, filename):
+    filepath = os.path.join(path, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        print '%s removed' % filepath
+    else:
+        print '%s file not exsits' % filepath
+
+def RBrm(path):
+    pathStored = path + '##$'
+    if os.path.exists(pathStored):
+        os.rename(pathStored, path)
+        print '%s recovered' % path
+    else:
+        print '%s file not exsits' % pathStored
+
+def RBmkdir(path, filename):
+    filepath = os.path.join(path, filename)
+    if os.path.exists(filepath):
+        os.rmdir(filepath)
+        print '%s removed' % filepath
+    else:
+        print '%s directory not exsits' % filepath
+
+
+
+    
+    
+    

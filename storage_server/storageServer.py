@@ -153,7 +153,9 @@ def handler(name, sock, section):
                     sock.send('File already exists')#overwrite the existing file or not
                     continue
                 if rPath != 'Path invalid':#TODO, parse to local
-                    rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
+                    rFilename = filename
+                    if section == 'R':
+                        rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
                     logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
@@ -188,7 +190,9 @@ def handler(name, sock, section):
                         sock.send('Not file')
                         continue
                     logPath = parseLogPath(path)
-                    rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
+                    rFilename = filename
+                    if section == 'R':
+                        rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
                     mylog.append(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
@@ -209,7 +213,9 @@ def handler(name, sock, section):
                     sock.send('Directory already exists')
                     continue
                 if rPath != 'Path invalid':
-                    rdirName = dirName + '##' + str(mylog.get_latest_index() + 1)
+                    rdirName = dirName
+                    if section == 'R':
+                        rdirName = dirName + '##' + str(mylog.get_latest_index() + 1)
                     logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' mkdir ' + logPath + ' ' + rdirName + ' uncommitted'))
                     status = fileManage.mkdir(rPath, rdirName, sock)
@@ -228,10 +234,10 @@ def handler(name, sock, section):
                 path = words[1]
                 path = ('node%s/' % nodeID) + path
                 rPath = parsePath(path, section)
-                if checkDir(rPath):
-                    sock.send('Directory is not empty')
-                    continue
                 if rPath != 'Path invalid':
+                    if checkDir(rPath):
+                        sock.send('Directory is not empty')
+                        continue
                     if os.path.isfile(rPath):
                         sock.send('Not directory')
                         continue

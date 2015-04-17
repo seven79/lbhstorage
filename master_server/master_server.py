@@ -310,7 +310,7 @@ class manage(threading.Thread):
             for i in invalid_list:
                 while config.latest_index[i] < self.log.get_latest_index():
                     recovery(i, valid_list[0], config.latest_index[i]+1, self.log)
-                    config.lates_index[i] += 1
+                    config.latest_index[i] += 1
             #check every 5s
             time.sleep(5)
                     
@@ -322,7 +322,7 @@ def recovery(recovery_node,helper_node, index, mylog):
     cmd = curr_log[1] 
     if cmd == 'upload':
         download_file(helper_node, curr_log[2], curr_log[3], curr_log[0], 'maintain')
-        upload_file(recovery_node, curr_log[2], curr_log[3], 'maintain_upload/'+curr_log[3], 'maintain')
+        upload_file(recovery_node, curr_log[2], curr_log[3], 'maintain_upload/', 'maintain')
         os.remove('maintain_upload/'+curr_log[3])
     elif cmd == 'rm':
         remove_file(recovery_node, curr_log[2], curr_log[3], 'maintain')
@@ -353,16 +353,21 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
         
         tc.wait_response(node_list)
         
-        #check if at least 2 nodes reply commit
-        new_node_list = []
-        for i in node_list:
-            if config.action_result[server_type][i] == True:
-                new_node_list.append(i)
-
-        if len(new_node_list) == 0:
-            return False
-
+    
+        if server_type == 'maintain':
+            if config.action_result[server_type][node_list] == False:
+                return False
+            
         if server_type == 'service':
+            #check if at least 2 nodes reply commit
+            new_node_list = []
+            for i in node_list:
+                if config.action_result[server_type][i] == True:
+                    new_node_list.append(i)
+
+            if len(new_node_list) == 0:
+                return False
+
             two_phase_commit(tc, new_node_list)
             #write log
             retrive_log(tc,new_node_list)
@@ -383,16 +388,21 @@ def remove_file(node_list, path, filename, server_type):
     tc.write_message('rm'+' '+path+' '+filename, node_list)
     tc.wait_response(node_list)
 
-    #check if at least 2 nodes reply commit
-    new_node_list = []
-    for i in node_list:
-        if config.action_result[server_type][i] == True:
-            new_node_list.append(i)
-            
-    if len(new_node_list) == 0:
-        return False
+    if server_type == 'maintain':
+        if config.action_result[server_type][node_list] == False:
+            return False
+
         
     if server_type == 'service':
+        #check if at least 2 nodes reply commit
+        new_node_list = []
+        for i in node_list:
+            if config.action_result[server_type][i] == True:
+                new_node_list.append(i)
+            
+        if len(new_node_list) == 0:
+            return False
+
         two_phase_commit(tc, new_node_list)
         #write log
         retrive_log(tc,new_node_list)
@@ -403,16 +413,20 @@ def remove_dir(node_list, path, server_type):
     tc.write_message('rmdir'+' '+path, node_list)
     tc.wait_response(node_list)
 
-    #check if at least 2 nodes reply commit
-    new_node_list = []
-    for i in node_list:
-        if config.action_result[server_type][i] == True:
-            new_node_list.append(i)
-            
-    if len(new_node_list) == 0:
-        return False
+    if server_type == 'maintain':
+        if config.action_result[server_type][node_list] == False:
+            return False
         
     if server_type == 'service':
+        #check if at least 2 nodes reply commit
+        new_node_list = []
+        for i in node_list:
+            if config.action_result[server_type][i] == True:
+                new_node_list.append(i)
+            
+        if len(new_node_list) == 0:
+            return False
+
         two_phase_commit(tc, new_node_list)
         #write log
         retrive_log(tc,new_node_list)
@@ -433,16 +447,20 @@ def mkdir(node_list, dir, dir_name, server_type):
     tc.write_message('mkdir'+' '+dir+' '+dir_name, node_list)
     tc.wait_response(node_list)
 
-        #check if at least 2 nodes reply commit
-    new_node_list = []
-    for i in node_list:
-        if config.action_result[server_type][i] == True:
-            new_node_list.append(i)
-            
-    if len(new_node_list) == 0:
-        return False
+    if server_type == 'maintain':
+        if config.action_result[server_type][node_list] == False:
+            return False
         
     if server_type == 'service':
+        #check if at least 2 nodes reply commit
+        new_node_list = []
+        for i in node_list:
+            if config.action_result[server_type][i] == True:
+                new_node_list.append(i)
+            
+        if len(new_node_list) == 0:
+            return False
+
         two_phase_commit(tc, new_node_list)
         #write log
         retrive_log(tc,new_node_list)
@@ -528,13 +546,14 @@ def handle_upload(cmd,connect,client_id,server_type):
             return
 
         if commit == 'commit':
+        print('Upload: receive commit')
             if server_type == 'maintain':
                 #if it's maintain server, no need to gather 2/3 commits
                 if send_msg('ACK',connect,client_id,server_type) == False:
                     return
             config.action_result[server_type][client_id] = True
         else:
-            print('not receive commit')
+            print('Upload: not receive commit')
             config.action_result[server_type][client_id] = False
             
         config.response_ready[server_type][client_id].set()
@@ -629,13 +648,14 @@ def handle_remove(cmd,connect,client_id,server_type):
         config.response_ready[server_type][client_id].set()
         return
     elif ack == 'commit':
+        print('Remove: receive commit')
         if server_type == 'maintain':
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
             config.action_result[server_type][client_id] = True
     else:
-        print('not receive commit')
+        print('Remove: not receive commit')
         config.action_result[server_type][client_id] = False
             
     config.response_ready[server_type][client_id].set()
@@ -666,13 +686,14 @@ def handle_rmdir(cmd,connect,client_id,server_type):
         config.response_ready[server_type][client_id].set()
         return
     elif ack == 'commit':
+        print('Rmdir: receive commit')
         if server_type == 'maintain':
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
             config.action_result[server_type][client_id] = True
     else:
-        print('not receive commit')
+        print('Rmdir: not receive commit')
         config.action_result[server_type][client_id] = False
             
     config.response_ready[server_type][client_id].set()
@@ -725,14 +746,14 @@ def handle_mkdir(cmd,connect,client_id,server_type):
         config.response_ready[server_type][client_id].set()
         return
     elif ack == 'commit':
-        print('receive commit')
+        print('Mkdir: receive commit')
         if server_type == 'maintain':
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
             config.action_result[server_type][client_id] = True
     else:
-        print('not receive commit')
+        print('Mkdir: not receive commit')
         config.action_result[server_type][client_id] = False
             
     config.response_ready[server_type][client_id].set()
@@ -792,7 +813,8 @@ def send_msg(message, connect, client_id, server_type):
             print "Detected "+"node "+str(client_id)+" disconnect from "+server_type
         connect.close()
         if server_type == 'maintain' or server_type == 'service':
-            config.STATE_TABLE[server_type][client_id] = False
+            config.STATE_TABLE['maintain'][client_id] = False
+            config.STATE_TABLE['service'][client_id] = False
             config.error_message[server_type][client_id] = 'send error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()
@@ -816,7 +838,8 @@ def recv_msg(connect, client_id, server_type):
     if not len(msg):
         print('Receive message error: '+'node '+str(client_id)+' may disconnect from '+server_type)
         if server_type == 'maintain' or server_type == 'service':
-            config.STATE_TABLE[server_type][client_id] = False
+            config.STATE_TABLE['maintain'][client_id] = False
+            config.STATE_TABLE['service'][client_id] = False
             config.error_message[server_type][client_id] = 'recv error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()

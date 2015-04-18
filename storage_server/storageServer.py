@@ -190,7 +190,7 @@ def handler(name, sock, section):
                     if os.path.isdir(rPath):
                         sock.send('Not file')
                         continue
-                    logPath = parseLogPath(rPath)
+                    logPath = parseLogPath(parsePath(path, section))
                     rFilename = filename
                     if section == 'R':
                         rFilename = filename + '##' + str(mylog.get_latest_index() + 1)

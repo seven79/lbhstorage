@@ -119,6 +119,7 @@ class server:
             self.client_num += 1
             print("client connecting:",self.client_num)  
             handler.setConnect(client)  
+            handler.setDaemon(True)
             handler.start()  
         ss.close()  
         print(self.server_type + "Server close, bye-bye.") 
@@ -546,7 +547,7 @@ def handle_upload(cmd,connect,client_id,server_type):
             return
 
         if commit == 'commit':
-        print('Upload: receive commit')
+            print('Upload: receive commit')
             if server_type == 'maintain':
                 #if it's maintain server, no need to gather 2/3 commits
                 if send_msg('ACK',connect,client_id,server_type) == False:
@@ -672,7 +673,7 @@ def handle_rmdir(cmd,connect,client_id,server_type):
     ack = recv_msg(connect, client_id, server_type)
     if ack == '':
         return
-    
+    print('ack in rmdir: '+ack)
     if ack == 'Directory not exists':
         print('Remove_dir: Directory not exists.')
         config.error_message[server_type][client_id] = 'not exist'

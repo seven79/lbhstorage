@@ -4,3 +4,7 @@
 4 upload . test2.py##4 1140 committed
 5 mkdir . testdir##5 committed
 6 rmdir testdir##5 committed
+7 mkdir . mydir##7 committed
+8 upload mydir##7 config.py##8 1467 committed
+9 rm mydir##7 config.py##8 committed
+10 rmdir mydir##7 committed

@@ -193,7 +193,7 @@ def handler(name, sock, section):
                     logPath = parseLogPath(parsePath(path, section))
                     rFilename = filename
                     if section == 'R':
-                        rFilename = filename + '##' + str(mylog.get_latest_index() + 1)
+                        rFilename = rPath.split('/')[-1]
                     mylog.append(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':

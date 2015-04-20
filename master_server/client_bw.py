@@ -83,7 +83,7 @@ class client:
                     continue
                 else:
                     absDir = self.mydir.abs_dir(words[1])
-                    if os.path.isfile(absDir)!=1:
+                    if os.path.isfile(words[2])!=True:
                         print ('Try again! Correct format: upload absolute_path/relative_path filename')
                         continue
                     else:

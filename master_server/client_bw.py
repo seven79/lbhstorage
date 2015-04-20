@@ -78,7 +78,7 @@ class client:
             request = raw_input('Please input request:\n')
             words = request.split()
             if words[0] == 'upload':
-                if str.count(' ',1,100)!=2:
+                if len(words) != 3:
                     print('Try again! Correct format: upload absolute_path/relative_path filename')
                     continue
                 else:
@@ -110,7 +110,7 @@ class client:
                                 print('Upload file successfully.')
                                     
             elif words[0] == 'download':
-                if str.count(' ',1,100)!=2:
+                if len(words) != 3:
                     print ('Try again! Correct format: download absolute_path/relative_path filename')
                     continue
                 else:
@@ -146,7 +146,7 @@ class client:
                                 
 
             elif words[0] == 'rm':
-                if str.count(' ',1,100)!=2:
+                if len(words) != 3:
                     print('Try again! Correct format: rm absolute_path/relative_path filename')
                     continue
                 else:
@@ -169,7 +169,7 @@ class client:
             
             
             elif words[0] == 'cd':
-                if str.count(' ',1,100)!=1:
+                if len(words) != 2:
                     print('Try again! Correct format: cd absolute_path/relative path')
                     continue
                 else:
@@ -193,7 +193,7 @@ class client:
                         print(response)
 
             elif words[0] == 'mkdir':
-                if str.count(' ',1,100)!=2:
+                if len(words) != 3:
                     print ('Try again! Correct format: mkdir absolute_path/relative_path filename')
                     continue
                 else:
@@ -218,7 +218,7 @@ class client:
                             print("Create directory successfully.")
         
             elif words[0] == 'rmdir':
-                if str.count(' ',1,100)!=1:
+                if len(words) != 2 :
                     print('Try again! Correct format: rmdir absolute_path/relative_path')
                     continue
                 else:
@@ -241,9 +241,12 @@ class client:
                         elif ack == 'success':
                             print("Remove directory successfully.")
                 
-            elif word[0] == 'exit':
+            elif words[0] == 'exit':
                 cc.send('exit')
                 break
+                
+            else:
+                print('no such command: '+words[0])
                 
         cc.close()
 

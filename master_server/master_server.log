@@ -8,3 +8,6 @@
 8 upload mydir##7 config.py##8 1467 committed
 9 rm mydir##7 config.py##8 committed
 10 rmdir mydir##7 committed
+11 mkdir . mydir##11 committed
+12 rmdir mydir##11 committed
+13 mkdir . direct##13 committed

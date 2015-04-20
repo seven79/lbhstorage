@@ -83,26 +83,29 @@ class client:
                     continue
                 else:
                     absDir = self.mydir.abs_dir(words[1])
-                    
-                    filename = words[2]
-                    real_file = filename.split('/')
-                    real_file = real_file[len(real_file)-1]
-                    request = words[0]+' '+absDir+' '+real_file+' ' + str(os.path.getsize(filename))
-                    print request
-                    cc.send(request)
-                    response = cc.recv(1024)
-                    if response == 'STOP':
-                        print('Oops,Storage service is not available now.')                   
+                    if os.path.isfile(absDir)!=1:
+                        print ('Try again! Correct format: upload absolute_path/relative_path filename')
                         continue
-                    elif response == 'OK':
-                        print('Storage sevice is available')
-                        with open(filename, 'rb') as f:
-                            print '%s opened' % filename
-                            bytesToSend = f.read(1024)
-                            cc.send(bytesToSend)
-                            while bytesToSend != "":
+                    else:
+                        filename = words[2]
+                        real_file = filename.split('/')
+                        real_file = real_file[len(real_file)-1]
+                        request = words[0]+' '+absDir+' '+real_file+' ' + str(os.path.getsize(filename))
+                        print request
+                        cc.send(request)
+                        response = cc.recv(1024)
+                        if response == 'STOP':
+                            print('Oops,Storage service is not available now.')                   
+                            continue
+                        elif response == 'OK':
+                            print('Storage sevice is available')
+                            with open(filename, 'rb') as f:
+                                print '%s opened' % filename
                                 bytesToSend = f.read(1024)
                                 cc.send(bytesToSend)
+                                while bytesToSend != "":
+                                    bytesToSend = f.read(1024)
+                                    cc.send(bytesToSend)
                             response = cc.recv(1024)
                             if response == 'path invalid':
                                 print('Path invalid')

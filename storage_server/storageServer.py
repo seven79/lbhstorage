@@ -328,6 +328,14 @@ def Main():
     global RR_status
     RR_status = 0
     nodeID = int(raw_input("node ID: -> "))
+    #init storage directory and log
+    path = ('node%s/' % nodeID)
+    if os.path.exists(path) == False:
+        os.mkdir(path)
+    logName = 'node' + str(nodeID) + '.log'
+    if os.path.isfile(logName) == False:
+        fp = open(logName, 'w')
+        fp.close()
     while True:
         command = raw_input("Command: (type:\"on\" to connect; \"off\" to block) -> ")        
         if command == 'on' and MT_status == 0 and RR_status == 0:

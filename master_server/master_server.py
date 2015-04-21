@@ -828,7 +828,8 @@ def recv_msg(connect, client_id, server_type):
     except socket.error, e:
         print "Error receiving data: %s" % e
         if server_type == 'maintain' or server_type == 'service':
-            config.STATE_TABLE[server_type][client_id] = False
+            config.STATE_TABLE['maintain'][client_id] = False
+            config.STATE_TABLE['service'][client_id] = False
             config.error_message[server_type][client_id] = 'recv error'
             config.action_result[server_type][client_id] = False
             config.response_ready[server_type][client_id].set()

@@ -3,6 +3,7 @@ import threading
 import os
 import select
 import fileManage
+import shutil
 from parsePath import parsePath
 from parsePath import checkExist
 from parsePath import checkDir
@@ -114,6 +115,22 @@ def rollBack(lastLog):
     else:
         return 'Last log has no commit/uncommit info.'
 
+def removeTmp(args, dirname, filenames):
+    currPath = os.path.abspath(dirname)
+    splitDir =[(filename, filename.split('##')) for filename in filenames]
+    fileToRemove = filter(lambda x: os.path.exists(os.path.join(currPath, x[0])) and len(x[1]) == 3 and x[1][2] == '$', splitDir)    
+    for filename in fileToRemove:
+        toDelete = os.path.join(currPath, filename[0])
+        if os.path.isdir(toDelete):
+            shutil.rmtree(toDelete)
+        else:
+            os.remove(toDelete)
+        print os.path.join(toDelete)
+
+def garbageCollection():
+    path = ('node%s' % nodeID)    
+    os.path.walk(path, removeTmp, None)
+    
 def handler(name, sock, section):
     # sock.setblocking(0)
     sock.send(str(nodeID))
@@ -261,7 +278,12 @@ def handler(name, sock, section):
                 sock.send(str(mylog.get_latest_index()))
             elif command == 'log':
                 sock.send(mylog.read_line(mylog.get_latest_index()))
-
+            elif command == 'heartBeat':
+                sock.send('alive')
+            elif command == 'garbage':
+                garbageCollection()
+                sock.send('garbage collected')
+                #TODO: reply or not
         else:
             print 'wait for message(%s)' % section
             if section == 'R' and RR_status == 0:
@@ -279,6 +301,8 @@ def ResponseRequest(name, sock):
 
 def Maintain(name, sock):
     handler(name, sock, 'M')
+
+
 
 def Main():
     #connect to Master Server

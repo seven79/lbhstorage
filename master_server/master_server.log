@@ -1,13 +1,16 @@
-1 upload . config.py##1 1467 committed
-2 upload . service.py##2 757 committed
-3 upload . master_server.py##3 31764 committed
-4 upload . test2.py##4 1140 committed
-5 mkdir . testdir##5 committed
-6 rmdir testdir##5 committed
-7 mkdir . mydir##7 committed
-8 upload mydir##7 config.py##8 1467 committed
-9 rm mydir##7 config.py##8 committed
-10 rmdir mydir##7 committed
-11 mkdir . mydir##11 committed
-12 rmdir mydir##11 committed
-13 mkdir . direct##13 committed
+1 mkdir . dir1##1 committed
+2 upload dir1##1 subwaymap.pdf##2 485817 committed
+3 mkdir . dir2##3 committed
+4 upload dir2##3 image_test.JPG##4 1648404 committed
+5 upload dir2##3 subwaymap.pdf##5 485817 committed
+6 rm dir2##3 image_test.JPG##4 committed
+7 upload dir2##3 image_test.JPG##7 1648404 committed
+8 rm . subwaymap.pdf##2 committed
+9 upload dir1##1 i2.JPG##9 1648404 committed
+10 mkdir dir1##1 dir1.1##10 committed
+11 rm dir1##1 i2.JPG##9 committed
+12 rmdir dir1##1/dir1.1##10 committed
+13 mkdir dir1##1 dir1.2##13 committed
+14 upload dir1##1/dir1.2##13 i2.JPG##14 1648404 committed
+15 rm dir1##1/dir1.2##13 i2.JPG##14 committed
+16 rmdir dir1##1/dir1.2##13 committed

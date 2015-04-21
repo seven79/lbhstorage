@@ -8,10 +8,10 @@ from parsePath import parsePath
 from parsePath import checkExist
 from parsePath import checkDir
 
-MT_status = 0
-RR_status = 0
+#MT_status = 0
+#RR_status = 0
 timeout = 1 #1 second
-index = 0
+#index = 0
 nodeID = -1
 
 class log:
@@ -134,7 +134,7 @@ def garbageCollection():
 def handler(name, sock, section):
     # sock.setblocking(0)
     sock.send(str(nodeID))
-    index = 0
+#    index = 0
     mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
     if(mylog.get_latest_index() != 0):
         print rollBack(mylog.read_line(mylog.get_latest_index()))
@@ -323,6 +323,10 @@ def Main():
         exit()
     print "host: " + host + " MT:" + str(port_MT) + " RR:" + str(port_RR)
     global nodeID
+    global MT_status
+    MT_status = 0
+    global RR_status
+    RR_status = 0
     nodeID = int(raw_input("node ID: -> "))
     while True:
         command = raw_input("Command: (type:\"on\" to connect; \"off\" to block) -> ")        
@@ -330,7 +334,6 @@ def Main():
             #connect to maintain
             s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s1.connect((host, port_MT))
-            global MT_status
             MT_status = 1
             print "Master Server Connected (Maintain)."
             t1 = threading.Thread(target = Maintain, args = ("MT", s1))
@@ -339,7 +342,6 @@ def Main():
             #connect to ResponseRequest
             s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s2.connect((host, port_RR))
-            global RR_status
             RR_status = 1
             print "Master Server Connected (ResponseRequest)."
             t2 = threading.Thread(target = ResponseRequest, args = ("RR", s2))
@@ -347,9 +349,7 @@ def Main():
             t2.start()
 
         elif command == 'off' and MT_status == 1 and RR_status == 1:
-            global MT_status
             MT_status = 0
-            global RR_status
             RR_status = 0
             print "Master Server Disconnected (Maintain)."
             print "Master Server Disconnected (ResponseRequest)."

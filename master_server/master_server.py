@@ -155,6 +155,7 @@ class Handler(threading.Thread):
             #if current node disconnect, quit the handler
             if config.STATE_TABLE[self.t_name][self.client_id] == False:
                 break
+        print('quit '+self.t_name+' ' +str(self.client_id)+" handler.")
 
     #handler for client server
     def client_handler(self):

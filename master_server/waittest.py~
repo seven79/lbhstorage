@@ -1,0 +1,14 @@
+import threading
+
+e1 = threading.Event()
+
+
+def test():
+    while True:
+        if e1.wait(0.1) == True:
+            print("timeout!")
+
+
+    
+if __name__ == '__main__':
+    test()

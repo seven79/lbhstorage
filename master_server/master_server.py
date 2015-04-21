@@ -78,8 +78,10 @@ class threadcomm:
 
     def wait_message(self,client_id):
         #wait for message from maintain manage
-        config.message_ready[self.t_type][client_id].wait()
-        config.message_ready[self.t_type][client_id].clear()        
+        if config.message_ready[self.t_type][client_id].wait(0.1) == True:
+            config.message_ready[self.t_type][client_id].clear()
+            return True
+        return False
 
     def get_message(self,client_id):
         return config.message[self.t_type][client_id]
@@ -145,9 +147,18 @@ class Handler(threading.Thread):
 
     #handler for maintain and service server
     def ms_handler(self):
+        Quit = False
         tc = threadcomm(self.t_name)
         while True:
-            tc.wait_message(self.client_id)
+            while not Quit:
+                if tc.wait_message(self.client_id) == False:
+                    if config.STATE_TABLE[self.t_name][self.client_id] == False:
+                        Quit = True
+                else:
+                    break
+            if Quit:
+                break            
+                
             #parse the message send by maintain manage
             command = tc.get_message(self.client_id).split() 
             #switch to certain handler 
@@ -286,7 +297,6 @@ class manage(threading.Thread):
             #check if connected clients >= 2, if <2 stuck in while loop and wait
             print(config.STATE_TABLE)
             while len(node_list) < 2:
-                time.sleep(5)
                 del node_list[:]
                 for i in range(3):
                     if config.STATE_TABLE['maintain'][i] == True:
@@ -294,6 +304,7 @@ class manage(threading.Thread):
                 print('node_list: '+str(node_list))
                 if len(node_list) >= 2:
                     break
+                time.sleep(1)
                 print('maintain server manager: not enough connected nodes.')
                     
             print('maintain server manager: enough connected nodes.')
@@ -314,7 +325,7 @@ class manage(threading.Thread):
                     recovery(i, valid_list[0], config.latest_index[i]+1, self.log)
                     config.latest_index[i] += 1
             #check every 5s
-            time.sleep(5)
+            time.sleep(1)
                     
                                   
     

@@ -149,12 +149,12 @@ class client:
                                 
 
             elif words[0] == 'rm':
-                if len(words) != 3:
-                    print('Try again! Correct format: rm absolute_path/relative_path filename')
+                if len(words) != 2:
+                    print('Try again! Correct format: rm filename')
                     continue
                 else:
-                    absDir = self.mydir.abs_dir(words[1])                
-                    request = words[0]+' '+absDir+' '+words[2]
+                    absDir = self.mydir.abs_dir('.')                
+                    request = words[0]+' '+absDir+' '+words[1]
                     print request
                     cc.send(request)
                     response = cc.recv(1024)
@@ -195,13 +195,37 @@ class client:
                         print('Files in current directory are:')
                         print(response)
 
-            elif words[0] == 'mkdir':
-                if len(words) != 3:
-                    print ('Try again! Correct format: mkdir absolute_path/relative_path filename')
+            elif word[0] == 'ls':
+                if len(words) != 1:
+                    print('Try again! Correct format: ls')
                     continue
                 else:
-                    absDir = self.mydir.abs_dir(words[1])                
-                    request = words[0]+' '+absDir+' '+words[2]
+                    absDir = self.mydir.abs_dir('.')
+                    request = 'cd'+' '+absDir
+                    cc.send(request)
+                    response = cc.recv(1024)
+                    if response == 'STOP':
+                        print('Oops,Storage service is not available now.')                   
+                        continue
+                    elif response == 'OK':
+                        print('Storage sevice is available')
+
+                    response = cc.recv(1024)
+                    if response == 'path invalid':
+                        print('No such directory.')
+                    else:
+                        self.mydir.update_dir(absDir)
+                        print('Current directory:'+self.mydir.curr_dir())
+                        print('Files in current directory are:')
+                        print(response)
+
+            elif words[0] == 'mkdir':
+                if len(words) != 2:
+                    print ('Try again! Correct format: mkdir directory_name')
+                    continue
+                else:
+                    absDir = self.mydir.abs_dir('.')                
+                    request = words[0]+' '+absDir+' '+words[1]
                     print request
                     cc.send(request)
                     response = cc.recv(1024)
@@ -247,6 +271,7 @@ class client:
             elif words[0] == 'exit':
                 cc.send('exit')
                 break
+
                 
             else:
                 print('no such command: '+words[0])

@@ -248,8 +248,10 @@ class Handler(threading.Thread):
             #-------handle rm request---------------------
             elif command[0] == 'rm':
                 if remove_file(valid_list, command[1], command[2], 'service') == False:
-                    if config.error_message['service'][valid_list[0]] == 'path invalid':
-                        self.connect.send('path invalid')
+                    if config.error_message['service'][valid_list[0]] == 'not exist':
+                        self.connect.send('not exist')
+                    elif config.error_message['service'][valid_list[0]] == 'not file':
+                        self.connect.send('not file')
                 else:
                     self.connect.send('success')
             #--------handle cd request---------------------
@@ -277,6 +279,8 @@ class Handler(threading.Thread):
                         self.connect.send('not exist')
                     elif config.error_message['service'][valid_list[0]] == 'not empty':
                         self.connect.send('not empty')
+                    elif config.error_message['service'][valid_list[0]] == 'not dir':
+                        self.connect.send('not dir')
                 else:
                     self.connect.send('success')
 
@@ -665,9 +669,15 @@ def handle_remove(cmd,connect,client_id,server_type):
     if ack == '':
         return
     
-    if ack == 'Path invalid':
-        print('Remove: Path invalid.')
-        config.error_message[server_type][client_id] = 'path invalid'
+    if ack == 'File not exists':
+        print('Remove: File not exists.')
+        config.error_message[server_type][client_id] = 'not exist'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'Not file':
+        print('Remove: Not file.')
+        config.error_message[server_type][client_id] = 'not file'
         config.action_result[server_type][client_id] = False
         config.response_ready[server_type][client_id].set()
         return
@@ -706,6 +716,12 @@ def handle_rmdir(cmd,connect,client_id,server_type):
     elif ack == 'Directory is not empty':
         print('Remove_dir: Directory not empty.')
         config.error_message[server_type][client_id] = 'not empty'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+    elif ack == 'Not directory':
+        print('Remove_dir: not directory.')
+        config.error_message[server_type][client_id] = 'not dir'
         config.action_result[server_type][client_id] = False
         config.response_ready[server_type][client_id].set()
         return
@@ -757,7 +773,7 @@ def handle_mkdir(cmd,connect,client_id,server_type):
     if ack == '':
         return
     
-    if ack == 'Path invalid':
+    if ack == 'Path invalid' :
         print('Mkdir: Path invalid.')
         config.error_message[server_type][client_id] = 'path invalid'
         config.action_result[server_type][client_id] = False

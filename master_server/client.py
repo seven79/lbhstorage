@@ -164,8 +164,11 @@ class client:
                     elif response == 'OK':
                         print('Storage sevice is available')
                         ack = cc.recv(1024)
-                        if ack == 'path invalid':
-                            print("Path invalid.")
+                        if ack == 'not exist':
+                            print('File does not exist.')
+                            continue
+                        if ack == 'not file':
+                            print(words[1]+' is not a file')
                             continue
                         elif ack == 'success':
                             print("Remove file successfully.")
@@ -265,6 +268,8 @@ class client:
                             continue
                         elif ack == 'not empty':
                             print("Directory is not empty, you must remove all the files under it before remove directory.")
+                        elif ack == 'not dir':
+                            print(words[1]+" is not a directory")
                         elif ack == 'success':
                             print("Remove directory successfully.")
                 

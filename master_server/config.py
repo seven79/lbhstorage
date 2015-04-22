@@ -44,25 +44,6 @@ latest_log =['','','']
 
 curr_dir = ''
 
-def test():
-    t = threading.Thread(target = t1)
-    t.setDaemon(True)
-    t.start()
-    t2()
-
-def t1():
-    while True:
-        message_ready['maintain'][0].wait()
-        message_ready['maintain'][0].clear()
-        print('message is: '+message['maintain'][0])
-        response_ready['maintain'][0].set()
-
-def t2():
-    while True:
-        msg = raw_input('input message:\n')
-        message['maintain'][0] = msg
-        message_ready['maintain'][0].set()
-        response_ready['maintain'][0].wait()
 
 if __name__ == '__main__':
     test()

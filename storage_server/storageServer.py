@@ -283,7 +283,7 @@ def handler(name, sock, section):
                 sock.send('alive')
             elif command == 'garbage':
                 garbageCollection()
-                sock.send('garbage collected')
+                sock.send('Garbage collected')
                 #TODO: reply or not
         else:
             print 'wait for message(%s)' % section

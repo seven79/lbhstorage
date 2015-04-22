@@ -198,7 +198,7 @@ class client:
                         print('Files in current directory are:')
                         print(response)
 
-            elif word[0] == 'ls':
+            elif words[0] == 'ls':
                 if len(words) != 1:
                     print('Try again! Correct format: ls')
                     continue

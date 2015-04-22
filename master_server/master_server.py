@@ -162,7 +162,6 @@ class Handler(threading.Thread):
                 else:
                     break
             if Quit:
-                print('quit '+self.t_name+' ' +str(self.client_id)+" handler.")
                 break            
                 
             #parse the message send by maintain manage

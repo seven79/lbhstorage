@@ -199,9 +199,9 @@ class Handler(threading.Thread):
                 continue
 
             #----------check now many node has latest log(valid)----------------
-            latest_index=query_index(node_list,'service')
+            node_list=query_index(node_list,'service')
             for i in node_list:
-              if latest_index[i] == self.log.get_latest_index():
+              if config.latest_index[i] == self.log.get_latest_index():
                   valid_list.append(i)
                   
             print('valid list:'+str(valid_list))
@@ -901,7 +901,6 @@ def retrive_log(tc, node_list):
     else:
         print('received logs are different.')
 
-def heartbeat:
     
     
 

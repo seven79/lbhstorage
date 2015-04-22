@@ -4,13 +4,14 @@ import os
 import select
 import fileManage
 import shutil
+import time
 from parsePath import parsePath
 from parsePath import checkExist
 from parsePath import checkDir
 
 #MT_status = 0
 #RR_status = 0
-timeout = 1 #1 second
+timeout = 0.5 #1 second
 #index = 0
 nodeID = -1
 
@@ -337,7 +338,7 @@ def Main():
         fp = open(logName, 'w')
         fp.close()
     while True:
-        command = raw_input("Command: (type:\"on\" to connect; \"off\" to block) -> ")        
+        command = raw_input("Command: (type:\"on\" to connect; \"off\" to block) -> ")
         if command == 'on' and MT_status == 0 and RR_status == 0:
             #connect to maintain
             s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -361,6 +362,8 @@ def Main():
             RR_status = 0
             print "Master Server Disconnected (Maintain)."
             print "Master Server Disconnected (ResponseRequest)."
+
+        time.sleep(2*timeout)
 
 
 if __name__ == '__main__':

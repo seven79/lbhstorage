@@ -195,6 +195,8 @@ def handler(name, sock, section):
                 path = ('node%s/' % nodeID) + path
                 filename = words[2]
                 rPath = parsePath(os.path.join(path,filename), section)
+                if os.path.isfile(rPath) == False:
+                    sock.send('Not file')
                 if rPath != 'Path invalid':#TODO, parse to local
                     fileManage.downloadFile(rPath, sock)
                 else:
@@ -256,12 +258,12 @@ def handler(name, sock, section):
                 path = words[1]
                 path = ('node%s/' % nodeID) + path
                 rPath = parsePath(path, section)
+                if rPath == 'Not directory':
+                    sock.send('Not directory')
+                    continue
                 if rPath != 'Path invalid':
                     if checkDir(rPath):
                         sock.send('Directory is not empty')
-                        continue
-                    if os.path.isfile(rPath):
-                        sock.send('Not directory')
                         continue
                     logPath = parseLogPath(rPath)
                     mylog.append((str(mylog.get_latest_index() + 1) + ' rmdir ' + logPath + ' uncommitted'))
@@ -332,9 +334,7 @@ def Main():
     MT_status = 0
     global RR_status
     RR_status = 0
-    if len(sys.argv) != 2:
-        print "usage: python storageServer.py <nodeID>"
-        exit()
+
     nodeID = sys.argv[1]
     #init storage directory and log
     path = ('node%s/' % nodeID)

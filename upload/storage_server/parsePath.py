@@ -16,6 +16,8 @@ def parsePath(path, section):
             if directory == '.' or directory == '':
                 continue
             else:
+                if os.path.isfile(currPath):
+                    return 'Not directory'
                 splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
                 #print 'directory for now: %s' % directory
                 #print 'dirs of %s' % currPath

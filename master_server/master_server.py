@@ -328,7 +328,8 @@ class manage(threading.Thread):
             print(config.STATE_TABLE)
             print('maintain server manager: enough connected nodes.')
             
-            #if len(node_list) == 3:
+            if len(node_list) == 3:
+                garbage_collect(node_list,'maintain')
                 
             #if connected clients >=2, start service and recovery nodes
             #check which node need to recovery by compare latest index           
@@ -374,6 +375,17 @@ def recovery(recovery_node,helper_node, index, mylog):
 def query_index(node_list,server_type):
     tc = threadcomm(server_type)
     tc.write_message('index',node_list)
+    tc.wait_response(node_list)
+    new_node_list = []
+    for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+            config.action_result[server_type][i] = False
+    return new_node_list
+
+def garbage_collect(node_list,server_type):
+    tc = threadcomm(server_type)
+    tc.write_message('garbage',node_list)
     tc.wait_response(node_list)
     new_node_list = []
     for i in node_list:
@@ -523,6 +535,7 @@ def switcher(cmd,connect,client_id,t_name):
               'cd': handle_cd,
               'mkdir': handle_mkdir,
               'rmdir': handle_rmdir,
+              'garbage': handle_garbage,
           }
     switch[cmd[0]](cmd,connect,client_id,t_name)
 
@@ -541,6 +554,24 @@ def handle_index(cmd,connect,client_id,server_type):
         config.latest_index[client_id] = string.atoi(latest_index)
 
     config.action_result[server_type][client_id] = True
+    config.response_ready[server_type][client_id].set()
+
+def handle_garbage(cmd,connect,client_id,server_type):
+     
+    if send_msg(cmd[0],connect,client_id,server_type) == False:
+        return
+
+    response = recv_msg(connect, client_id, server_type)
+
+    if response == '':
+        return
+    else:
+    
+    if response == 'Garbage collected':
+        config.action_result[server_type][client_id] = True
+    else:
+        config.action_result[server_type][client_id] = False
+
     config.response_ready[server_type][client_id].set()
 
 def handle_upload(cmd,connect,client_id,server_type):

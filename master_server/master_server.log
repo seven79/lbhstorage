@@ -14,3 +14,5 @@
 14 upload dir1##1/dir1.2##13 i2.JPG##14 1648404 committed
 15 rm dir1##1/dir1.2##13 i2.JPG##14 committed
 16 rmdir dir1##1/dir1.2##13 committed
+17 upload dir1##1 i2.JPG##17 1648404 committed
+18 rm dir1##1 i2.JPG##17 committed

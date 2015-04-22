@@ -184,21 +184,21 @@ class Handler(threading.Thread):
                 break
 
             #--------check if now there are at least 2 node connected to service server-------------
-            node_list = []
             valid_list = []
+            node_list = []
             for i in range(3):
                 if config.STATE_TABLE['service'][i] == True:
-                        node_list.append(i)
+                    node_list.append(i)
 
+            node_list = query_index(node_list,'service')
             print('node list:'+str(node_list))
-            #if connected nodes < 2, stop service
+            #if connected nodes < 2, stop service            
             if len(node_list) < 2:
                 self.connect.send('STOP')
                 print('Received request, but there are not enough nodes connected.')
                 continue
-
             #----------check now many node has latest log(valid)----------------
-            node_list=query_index(node_list,'service')
+
             for i in node_list:
               if config.latest_index[i] == self.log.get_latest_index():
                   valid_list.append(i)
@@ -233,6 +233,7 @@ class Handler(threading.Thread):
                 if download_file(valid_list[0], command[1], command[2], str(-1), 'service') == True:
                     send_file(command,'service_download/',self.connect)
                     os.remove('service_download/'+command[2])
+                    config.action_result['service'][valid_list[0]] = False
                 else:
                     if config.error_message['service'][valid_list[0]] == 'not exist':
                         if send_msg('not exist',self.connect,-1,'client') == False:
@@ -303,24 +304,34 @@ class manage(threading.Thread):
         while True:
             valid_list=[]
             invalid_list=[]
-            node_list=[] 
+            node_list = []
+            for i in range(3):
+                if config.STATE_TABLE['maintain'][i] == True:
+                    node_list.append(i)
+
+            node_list = query_index(node_list,'maintain')
             #check if connected clients >= 2, if <2 stuck in while loop and wait
-            print(config.STATE_TABLE)
+            print("node_list:"+str(node_list))
+
+
             while len(node_list) < 2:
-                del node_list[:]
+                print('maintain server manager: not enough connected nodes.')
+                time.sleep(1)
+                node_list=[]
                 for i in range(3):
                     if config.STATE_TABLE['maintain'][i] == True:
                         node_list.append(i)
-                print('node_list: '+str(node_list))
-                if len(node_list) >= 2:
-                    break
-                time.sleep(1)
-                print('maintain server manager: not enough connected nodes.')
-                    
+                node_list = query_index(node_list, 'maintain')
+                print("node_list:"+str(node_list))
+                print(config.STATE_TABLE)
+            
+            print(config.STATE_TABLE)
             print('maintain server manager: enough connected nodes.')
+            
+            #if len(node_list) == 3:
+                
             #if connected clients >=2, start service and recovery nodes
-            #check which node need to recovery by compare latest index 
-            node_list = query_index(node_list,'maintain')
+            #check which node need to recovery by compare latest index           
             print('latest_index: '+str(config.latest_index))
             my_index = self.log.get_latest_index()
             print('my_index is '+str(my_index))
@@ -368,6 +379,7 @@ def query_index(node_list,server_type):
     for i in node_list:
         if config.action_result[server_type][i] == True:
             new_node_list.append(i)
+            config.action_result[server_type][i] = False
     return new_node_list
 
 def upload_file(node_list, dest_dir, filename, src_dir,server_type):
@@ -391,6 +403,7 @@ def upload_file(node_list, dest_dir, filename, src_dir,server_type):
             for i in node_list:
                 if config.action_result[server_type][i] == True:
                     new_node_list.append(i)
+                    config.action_result[server_type][i] == False
 
             if len(new_node_list) == 0:
                 return False
@@ -426,6 +439,7 @@ def remove_file(node_list, path, filename, server_type):
         for i in node_list:
             if config.action_result[server_type][i] == True:
                 new_node_list.append(i)
+                config.action_result[server_type][i] = False
             
         if len(new_node_list) == 0:
             return False
@@ -450,6 +464,7 @@ def remove_dir(node_list, path, server_type):
         for i in node_list:
             if config.action_result[server_type][i] == True:
                 new_node_list.append(i)
+                config.action_result[server_type][i] = False
             
         if len(new_node_list) == 0:
             return False
@@ -484,6 +499,7 @@ def mkdir(node_list, dir, dir_name, server_type):
         for i in node_list:
             if config.action_result[server_type][i] == True:
                 new_node_list.append(i)
+                config.action_result[server_type][i] = False
             
         if len(new_node_list) == 0:
             return False
@@ -686,7 +702,7 @@ def handle_remove(cmd,connect,client_id,server_type):
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
-            config.action_result[server_type][client_id] = True
+        config.action_result[server_type][client_id] = True
     else:
         print('Remove: not receive commit')
         config.action_result[server_type][client_id] = False
@@ -730,7 +746,7 @@ def handle_rmdir(cmd,connect,client_id,server_type):
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
-            config.action_result[server_type][client_id] = True
+        config.action_result[server_type][client_id] = True
     else:
         print('Rmdir: not receive commit')
         config.action_result[server_type][client_id] = False
@@ -790,7 +806,7 @@ def handle_mkdir(cmd,connect,client_id,server_type):
             #if it's maintain server, no need to gather 2/3 commits
             if send_msg('ACK',connect,client_id,server_type) == False:
                 return
-            config.action_result[server_type][client_id] = True
+        config.action_result[server_type][client_id] = True
     else:
         print('Mkdir: not receive commit')
         config.action_result[server_type][client_id] = False
@@ -887,7 +903,7 @@ def recv_msg(connect, client_id, server_type):
     return msg
 
 def two_phase_commit(tc, node_list):        
-
+    print('enter two phase commit')
     if len(node_list) >= 2:
         tc.write_message('ack',node_list)
         tc.wait_response(node_list)
@@ -897,6 +913,7 @@ def two_phase_commit(tc, node_list):
 
 #retrive log from nodes
 def retrive_log(tc, node_list):
+    print('enter retrive log')
     tc.write_message('log',node_list)
     tc.wait_response(node_list)
     #check if returned logs are same
@@ -915,11 +932,27 @@ def retrive_log(tc, node_list):
         mylog.append(config.latest_log[node_list[0]])
     else:
         print('received logs are different.')
-
+def init():
+    #init storage directory and log
+    path = ('service_upload')
+    if os.path.exists(path) == False:
+        os.mkdir(path)
+    path = ('service_download')
+    if os.path.exists(path) == False:
+        os.mkdir(path)
+    path = ('maintain_upload')
+    if os.path.exists(path) == False:
+        os.mkdir(path)
+        
+    logName = 'master_server.log'
+    if os.path.isfile(logName) == False:
+        fp = open(logName, 'w')
+        fp.close()
     
     
 
 def main():
+    init()
     maintain_server_manager = manage('maintain')
     maintain_server_manager.setDaemon(True)
     service_server = server('service','127.0.0.1',8000)

@@ -54,6 +54,11 @@ class client:
 
     def start(self):
         print('Client start...')
+        #create download directory
+        path = ('download')
+        if os.path.exists(path) == False:
+            os.mkdir(path)
+
         cc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         cc.connect((self.ip, self.port))
         
@@ -84,7 +89,7 @@ class client:
                 else:
                     absDir = self.mydir.abs_dir(words[1])
                     if os.path.isfile(words[2])!=True:
-                        print ('Try again! Correct format: upload absolute_path/relative_path filename')
+                        print ('No such file:'+ words[2])
                         continue
                     else:
                         filename = words[2]

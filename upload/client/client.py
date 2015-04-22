@@ -96,7 +96,7 @@ class client:
                         real_file = filename.split('/')
                         real_file = real_file[len(real_file)-1]
                         request = words[0]+' '+absDir+' '+real_file+' ' + str(os.path.getsize(filename))
-                        print request
+
                         cc.send(request)
                         response = cc.recv(1024)
                         if response == 'STOP':
@@ -105,7 +105,7 @@ class client:
                         elif response == 'OK':
                             print('Storage sevice is available')
                             with open(filename, 'rb') as f:
-                                print '%s opened' % filename
+
                                 bytesToSend = f.read(1024)
                                 cc.send(bytesToSend)
                                 while bytesToSend != "":
@@ -125,7 +125,7 @@ class client:
                     dest_dir = 'download/'
                     absDir = self.mydir.abs_dir(words[1])                
                     request = words[0]+' '+absDir+' '+words[2]
-                    print request
+
                     cc.send(request)
                     response = cc.recv(1024)
                     if response == 'STOP':
@@ -150,7 +150,7 @@ class client:
                                 data = cc.recv(1024)
                                 totalRecv += len(data)
                                 f.write(data)
-                            print "Receive Complete!"
+                            print "Download Complete!"
                                 
 
             elif words[0] == 'rm':
@@ -160,7 +160,7 @@ class client:
                 else:
                     absDir = self.mydir.abs_dir('.')                
                     request = words[0]+' '+absDir+' '+words[1]
-                    print request
+
                     cc.send(request)
                     response = cc.recv(1024)
                     if response == 'STOP':
@@ -234,7 +234,7 @@ class client:
                 else:
                     absDir = self.mydir.abs_dir('.')                
                     request = words[0]+' '+absDir+' '+words[1]
-                    print request
+
                     cc.send(request)
                     response = cc.recv(1024)
                     if response == 'STOP':
@@ -259,7 +259,7 @@ class client:
                 else:
                     absDir = self.mydir.abs_dir(words[1])                
                     request = words[0]+' '+absDir
-                    print request
+
                     cc.send(request)
                     response = cc.recv(1024)
                     if response == 'STOP':

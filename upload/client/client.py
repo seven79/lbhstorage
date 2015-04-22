@@ -114,6 +114,8 @@ class client:
                             response = cc.recv(1024)
                             if response == 'path invalid':
                                 print('Path invalid')
+                            elif response == 'file exists':
+                                print('File already exists')
                             elif response == 'success':
                                 print('Upload file successfully.')
                                     
@@ -135,10 +137,10 @@ class client:
                         print('Storage sevice is available')
                         filesize = cc.recv(1024)
                         if filesize == 'not exist':
-                            print("file doesn't exists")
+                            print("File doesn't exists")
                             continue
                         elif filesize == 'fail':
-                            print("file download fails")
+                            print("File download fails")
                             continue
                         filesize = long(filesize)
                         with open(dest_dir+words[2], 'wb') as f:

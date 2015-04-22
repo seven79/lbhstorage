@@ -231,6 +231,8 @@ class Handler(threading.Thread):
                 if upload_file(valid_list,command[1],command[2],'service_upload/', 'service') == False:
                     if config.error_message['service'][valid_list[0]] == 'path invalid':
                         self.connect.send('path invalid')
+                    elif config.error_message['service'][valid_list[0]] == 'file exists':
+                        self.connect.send('file exists')
                 else:
                     self.connect.send('success')
                 
@@ -602,6 +604,13 @@ def handle_upload(cmd,connect,client_id,server_type):
     if ack == 'Path invalid':
         print('Upload: Path invalid.')
         config.error_message[server_type][client_id] = 'path invalid'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return
+
+    elif ack == 'File already exists':
+        print('Upload: File already exists')
+        config.error_message[server_type][client_id] = 'file exists'
         config.action_result[server_type][client_id] = False
         config.response_ready[server_type][client_id].set()
         return

@@ -259,9 +259,13 @@ def handler(name, sock, section):
                 path = words[1]
                 path = ('node%s/' % nodeID) + path
                 rPath = parsePath(path, section)
-                if rPath == 'Not directory':
+                if rPath == 'file on path':
+                    sock.send('Path invalid')
+                    continue
+                if os.path.isfile(rPath):
                     sock.send('Not directory')
                     continue
+
                 if rPath != 'Path invalid':
                     if checkDir(rPath):
                         sock.send('Directory is not empty')

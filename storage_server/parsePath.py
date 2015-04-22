@@ -17,7 +17,7 @@ def parsePath(path, section):
                 continue
             else:
                 if os.path.isfile(currPath):
-                    return 'Not directory'
+                    return 'file on path'
                 splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
                 #print 'directory for now: %s' % directory
                 #print 'dirs of %s' % currPath

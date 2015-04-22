@@ -112,6 +112,11 @@ class server:
                     continue
                 else:
                     client_id = string.atoi(client_id)
+                #check if old handler not closed
+                while config.handler_exist[self.server_type][client_id] == True:
+                    config.STATE_TABLE[self.server_type][client_id] = False
+                #new handler exist    
+                config.handler_exist[self.server_type][client_id] = True
                 #refresh the state table
                 config.STATE_TABLE[self.server_type][client_id] = True
                 print(self.server_type+' '+str(client_id)+' connected.')
@@ -157,6 +162,7 @@ class Handler(threading.Thread):
                 else:
                     break
             if Quit:
+                print('quit '+self.t_name+' ' +str(self.client_id)+" handler.")
                 break            
                 
             #parse the message send by maintain manage
@@ -166,6 +172,7 @@ class Handler(threading.Thread):
             #if current node disconnect, quit the handler
             if config.STATE_TABLE[self.t_name][self.client_id] == False:
                 break
+        config.handler_exist[self.t_name][self.client_id] = False
         print('quit '+self.t_name+' ' +str(self.client_id)+" handler.")
 
     #handler for client server
@@ -310,12 +317,12 @@ class manage(threading.Thread):
             print('maintain server manager: enough connected nodes.')
             #if connected clients >=2, start service and recovery nodes
             #check which node need to recovery by compare latest index 
-            latest_index = query_index(node_list,'maintain')
-            print('latest_index: '+str(latest_index))
+            node_list = query_index(node_list,'maintain')
+            print('latest_index: '+str(config.latest_index))
             my_index = self.log.get_latest_index()
             print('my_index is '+str(my_index))
             for i in node_list:
-                if latest_index[i] == self.log.get_latest_index():
+                if config.latest_index[i] == self.log.get_latest_index():
                     valid_list.append(i)
                 else: 
                     invalid_list.append(i)
@@ -354,7 +361,11 @@ def query_index(node_list,server_type):
     tc = threadcomm(server_type)
     tc.write_message('index',node_list)
     tc.wait_response(node_list)
-    return config.latest_index
+    new_node_list = []
+    for i in node_list:
+        if config.action_result[server_type][i] == True:
+            new_node_list.append(i)
+    return new_node_list
 
 def upload_file(node_list, dest_dir, filename, src_dir,server_type):
     src_dir = src_dir + filename
@@ -889,7 +900,9 @@ def retrive_log(tc, node_list):
         mylog.append(config.latest_log[node_list[0]])
     else:
         print('received logs are different.')
-            
+
+def heartbeat:
+    
     
 
 def main():

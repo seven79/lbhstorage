@@ -29,6 +29,9 @@ message_ready = {'maintain':[mm1, mm2, mm3],
 response_ready = {'maintain':[rm1, rm2, rm3],
                   'service': [rs1, rs2, rs3],
               }
+handler_exist ={'service':[False, False, False], 
+              'maintain':[False, False, False],
+              } 
 action_result = {'maintain':[False, False, False],
                   'service': [False, False, False],
               }

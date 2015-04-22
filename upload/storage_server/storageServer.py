@@ -197,6 +197,7 @@ def handler(name, sock, section):
                 rPath = parsePath(os.path.join(path,filename), section)
                 if os.path.isfile(rPath) == False:
                     sock.send('Not file')
+                    continue
                 if rPath != 'Path invalid':#TODO, parse to local
                     fileManage.downloadFile(rPath, sock)
                 else:

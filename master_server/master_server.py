@@ -91,7 +91,6 @@ class server:
         self.ip = ip  
         self.port = port  
         self.server_type = server_type
-        self.client_num = 0
         print(self.server_type+' created.')
       
     def start(self):          
@@ -123,8 +122,11 @@ class server:
                 handler = Handler(self.server_type, client_id)
             elif self.server_type == 'client':
                 handler = Handler(self.server_type)
-            self.client_num += 1
-            print("client connecting:",self.client_num)  
+            
+            if self.server_type == 'maintain' or self.server_type == 'server':
+                client_num = len(filter(lambda x: x == True, config.handler_exist[self.server_type]))                
+                print(self.server_type+": "+str(client_num)+" client connected.")  
+
             handler.setConnect(client)  
             handler.setDaemon(True)
             handler.start()  
@@ -183,6 +185,13 @@ class Handler(threading.Thread):
                 self.connect.close()
                 break
 
+            #if request is exit, exit without check
+            EXIT = request.split()
+            if EXIT[0] == 'exit':
+                self.connect.close()
+                print('client exits')
+                break
+            
             #--------check if now there are at least 2 node connected to service server-------------
             valid_list = []
             node_list = []
@@ -283,11 +292,6 @@ class Handler(threading.Thread):
                         self.connect.send('not dir')
                 else:
                     self.connect.send('success')
-
-            
-
-             
-                    
                     
             
     
@@ -327,9 +331,7 @@ class manage(threading.Thread):
             
             print(config.STATE_TABLE)
             print('maintain server manager: enough connected nodes.')
-            
-            if len(node_list) == 3:
-                garbage_collect(node_list,'maintain')
+
                 
             #if connected clients >=2, start service and recovery nodes
             #check which node need to recovery by compare latest index           
@@ -342,6 +344,11 @@ class manage(threading.Thread):
                 else: 
                     invalid_list.append(i)
             print('maintain server manager: valid node is' + str(valid_list) + ' invalid node is '+str(invalid_list))
+
+            #garbage collection when 3 nodes are all valid            
+            if len(valid_list) == 3:
+                garbage_collect(valid_list,'maintain')
+            
             for i in invalid_list:
                 while config.latest_index[i] < self.log.get_latest_index():
                     recovery(i, valid_list[0], config.latest_index[i]+1, self.log)
@@ -565,9 +572,7 @@ def handle_garbage(cmd,connect,client_id,server_type):
 
     if response == '':
         return
-    else:
-    
-    if response == 'Garbage collected':
+    elif response == 'Garbage collected':
         config.action_result[server_type][client_id] = True
     else:
         config.action_result[server_type][client_id] = False

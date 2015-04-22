@@ -279,6 +279,9 @@ class client:
                             print("Remove directory successfully.")
                 
             elif words[0] == 'exit':
+                if len(words) != 1 :
+                    print('Try again! Correct format: exit')
+                    continue
                 cc.send('exit')
                 break
 

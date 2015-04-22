@@ -6,3 +6,4 @@
 6 upload dir1##5 config.py##6 1467 committed
 7 rm dir1##5 config.py##6 committed
 8 rmdir dir1##5 committed
+9 rm . service.py##4 committed

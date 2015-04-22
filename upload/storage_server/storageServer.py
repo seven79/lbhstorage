@@ -12,7 +12,7 @@ from parsePath import checkDir
 
 #MT_status = 0
 #RR_status = 0
-timeout = 0.5 #1 second
+timeout = 0.2 #0.2 second
 #index = 0
 nodeID = -1
 
@@ -127,7 +127,7 @@ def removeTmp(args, dirname, filenames):
             shutil.rmtree(toDelete)
         else:
             os.remove(toDelete)
-        print os.path.join(toDelete)
+        #print os.path.join(toDelete)
 
 def garbageCollection():
     path = ('node%s' % nodeID)    
@@ -139,12 +139,12 @@ def handler(name, sock, section):
 #    index = 0
     mylog = log(('node%s.log' % nodeID))#TODO create node1.log first in Main()
     if(mylog.get_latest_index() != 0):
-        print rollBack(mylog.read_line(mylog.get_latest_index()))
+        #print rollBack(mylog.read_line(mylog.get_latest_index()))
         mylog.initLog()
     while True:
         ready = select.select([sock], [], [], timeout)
         if ready[0]:
-            print 'request received(%s)' % section
+            #print 'request received(%s)' % section
             request = sock.recv(1024)
             words = request.split(" ")
             command = words[0]
@@ -179,7 +179,7 @@ def handler(name, sock, section):
                     mylog.append((str(mylog.get_latest_index() + 1) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' uncommitted'))
                     status = fileManage.uploadFile(rPath, rFilename, sock, size)
                     if status == 'success':
-                        print 'upload success'
+                        #print 'upload success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' upload ' + logPath + ' ' + rFilename + ' ' + words[3] + ' committed'))
                         if section == 'R':
                             sock.send(mylog.read_line(mylog.get_latest_index()))
@@ -216,7 +216,7 @@ def handler(name, sock, section):
                     mylog.append(str(mylog.get_latest_index() + 1) + ' rm ' + logPath + ' ' + rFilename + ' uncommitted')
                     status = fileManage.removeFile(rPath, sock)
                     if status == 'success':
-                        print 'rm success'
+                        #print 'rm success'
                         mylog.modify_last_line(str(mylog.get_latest_index()) + ' rm ' + logPath + ' ' + rFilename + ' committed')
                         if section == 'R':
                             sock.send(mylog.read_line(mylog.get_latest_index()))
@@ -241,7 +241,7 @@ def handler(name, sock, section):
                     mylog.append((str(mylog.get_latest_index() + 1) + ' mkdir ' + logPath + ' ' + rdirName + ' uncommitted'))
                     status = fileManage.mkdir(rPath, rdirName, sock)
                     if status == 'success':
-                        print 'mkdir success'
+                        #print 'mkdir success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' mkdir ' + logPath + ' ' + rdirName + ' committed'))
                         if section == 'R':
                             sock.send(mylog.read_line(mylog.get_latest_index()))
@@ -267,7 +267,7 @@ def handler(name, sock, section):
                     mylog.append((str(mylog.get_latest_index() + 1) + ' rmdir ' + logPath + ' uncommitted'))
                     status = fileManage.rmdir(rPath, sock)
                     if status == 'success':
-                        print 'rm success'
+                        #print 'rm success'
                         mylog.modify_last_line((str(mylog.get_latest_index()) + ' rmdir ' + logPath + ' committed'))
                         if section == 'R':
                             sock.send(mylog.read_line(mylog.get_latest_index()))
@@ -287,7 +287,7 @@ def handler(name, sock, section):
                 sock.send('Garbage collected')
                 #TODO: reply or not
         else:
-            print 'wait for message(%s)' % section
+            #print 'wait for message(%s)' % section
             if section == 'R' and RR_status == 0:
                 print 'close socket (%s)' % section
                 sock.close()
@@ -369,7 +369,7 @@ def Main():
             print "Master Server Disconnected (Maintain)."
             print "Master Server Disconnected (ResponseRequest)."
 
-        time.sleep(2*timeout)
+        time.sleep(5*timeout)
 
 
 if __name__ == '__main__':

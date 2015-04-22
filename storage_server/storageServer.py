@@ -4,6 +4,7 @@ import os
 import select
 import fileManage
 import shutil
+import sys
 import time
 from parsePath import parsePath
 from parsePath import checkExist
@@ -307,7 +308,7 @@ def Maintain(name, sock):
 
 def Main():
     #connect to Master Server
-    default_option = raw_input("use default (127.0.0.1 8000 8001):(y/n) -> ")
+    '''    default_option = raw_input("use default (127.0.0.1 8000 8001):(y/n) -> ")
     host = ''
     port_MT = 0
     port_RR = 0
@@ -321,16 +322,21 @@ def Main():
         port_RR = 8000
     else:
         print 'wrong choice'
-        exit()
+    exit()'''
+    host = '127.0.0.1'
+    port_MT = 8001
+    port_RR = 8000
     print "host: " + host + " MT:" + str(port_MT) + " RR:" + str(port_RR)
     global nodeID
     global MT_status
     MT_status = 0
     global RR_status
     RR_status = 0
-    nodeID = int(raw_input("node ID: -> "))
+
+    nodeID = sys.argv[1]
     #init storage directory and log
     path = ('node%s/' % nodeID)
+    print path
     if os.path.exists(path) == False:
         os.mkdir(path)
     logName = 'node' + str(nodeID) + '.log'

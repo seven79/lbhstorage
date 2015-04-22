@@ -17,12 +17,12 @@ def parsePath(path, section):
                 continue
             else:
                 splitDir =[(filename, filename.split('##')) for filename in os.listdir(currPath)]
-                print 'directory for now: %s' % directory
-                print 'dirs of %s' % currPath
-                print splitDir
+                #print 'directory for now: %s' % directory
+                #print 'dirs of %s' % currPath
+                #print splitDir
                 pathToAdd = filter(lambda x: os.path.exists(os.path.join(currPath, x[0])) and (len(x[1]) == 1 or len(x[1]) == 2) and x[1][0] == directory, splitDir)
-                print 'pathToAdd is:'
-                print pathToAdd
+                #print 'pathToAdd is:'
+                #print pathToAdd
                 if len(pathToAdd) == 0:
                     return 'Path invalid'
                 else:
@@ -38,7 +38,7 @@ def parsePath(path, section):
                 res += ('/' + dirs[j])
             for k in range(len(dirs) - i, len(dirs)):
                 res += ('/' + dirs[k] + '##$')
-            print 'res is %s now' % res
+            #print 'res is %s now' % res
             if os.path.exists(res):
                 return res
         return 'Path invalid'

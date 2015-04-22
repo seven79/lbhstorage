@@ -332,7 +332,9 @@ def Main():
     MT_status = 0
     global RR_status
     RR_status = 0
-
+    if len(sys.argv) != 2:
+        print "usage: python storageServer.py <nodeID>"
+        exit()
     nodeID = sys.argv[1]
     #init storage directory and log
     path = ('node%s/' % nodeID)

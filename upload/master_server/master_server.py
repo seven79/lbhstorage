@@ -251,6 +251,9 @@ class Handler(threading.Thread):
                             print('client disconnect.')
                             self.connect.close()
                             break
+                    elif config.error_message['service'][valid_list[0]] == 'not file':
+                        self.connect.send('not file')
+                        break
                     else:
                         if send_msg('fail',self.connect,-1,'client') == False:
                             print('client disconnect.')
@@ -687,7 +690,12 @@ def handle_download(cmd,connect,client_id,server_type):
         config.action_result[server_type][client_id] = True
         config.response_ready[server_type][client_id].set()
         return
-
+    elif res[0] == 'Not':
+        print('not a file')
+        config.error_message[server_type][client_id] = 'not file'
+        config.action_result[server_type][client_id] = False
+        config.response_ready[server_type][client_id].set()
+        return        
     else:
         print 'No such file'
         config.error_message[server_type][client_id] = 'not exist'

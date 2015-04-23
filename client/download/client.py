@@ -139,9 +139,6 @@ class client:
                         if filesize == 'not exist':
                             print("File doesn't exists")
                             continue
-                        elif filesize == 'not file':
-                            print(words[2]+" is not a file.")
-                            continue
                         elif filesize == 'fail':
                             print("File download fails")
                             continue
